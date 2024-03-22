@@ -1,0 +1,636 @@
+---
+title: "WaterLevel"
+author: "Hannah Curtis"
+date: "2023-11-01"
+output:
+  pdf_document: default
+  html_document: default
+---
+This file uses the raw pressure measurements from the pressure transducers to calculate water level at each pond. Additionally, water level and temperatures histograms are plotted in this file.
+
+Updated: 3/5/24
+
+Set working directory:
+```{r}
+setwd('/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level')
+```
+
+Read pressure files:
+```{r}
+# Reading in pressure transducer data
+atmospheric <- read.csv("Atmospheric/Atmospheric_Full_Season.csv")
+# convert atm pressure to psi
+atm_pressure_psi <- atmospheric$Abs.Pres.kPa/6.89476
+
+# Ponds
+baxter <- read.csv("Baxter/Baxter.csv")
+commercialave <- read.csv("CommAve/Commercial.csv")
+doba4 <- read.csv("DobA4/DobA4.csv")
+doba5_early <- read.csv("DobA5/DobA5_Early.csv")
+doba5_late <- read.csv("DobA5/DobA5_Late.csv") 
+doba7 <- read.csv("DobA7/DobA7_May.csv")
+doba8 <- read.csv("DobA8/DobA8_May.csv")
+doba22 <- read.csv("DobA22/DobA22.csv")
+doorcreek <- read.csv("DoorCreek/DoorCreek.csv")
+elver <- read.csv("Elver/Elver_May.csv")
+garner <- read.csv("Garner/Garner_May.csv")
+greentree <- read.csv("Greentree/Greentree_May.csv")
+hospital <- read.csv("Hospital/Hospital_May.csv")
+hpchurch <- read.csv("HPChurch/HPChurch.csv")
+lot60 <- read.csv("Lot60/Lot60_May.csv")
+madcity <- read.csv("MadCity/MadCity_May.csv")
+manitou <- read.csv("Manitou/Manitou.csv")
+mariondunn <- read.csv("MarionDunn/MarionDunn_May.csv")
+midtown <- read.csv("Midtown/Midtown.csv")
+owen <- read.csv("Owen/Owen_May.csv")
+twofountains <- read.csv("TwoFountains/TwoFountains_May.csv")
+
+```
+
+Accounting for the difference due to elevation:
+```{r}
+
+# Barometric pressure equation to account for elevation differences
+
+psi_at_height = function(h) {
+  Pb = 101325 #Reference Pressure (Pa)
+  Tb = 288.15 #Reference Temperature (K)
+  Lb = -0.0065 #Temperature Lapse Rate (K/m)
+  hb = 0 #Height of reference level 
+  g0 = 9.80665 #Gravity (m/s2)
+  R  = 8.3144598 #Gas constant (m3-Pa/K-mol)
+  M  = 0.0289644 #Molar mass of Earth's air (kg/mol)
+  pa = Pb*(((Tb+(h-hb)*Lb) / Tb)^((-g0*M)/(R*Lb)))
+  psi = pa / (1000 * 6.894757)
+  return(psi)
+}
+
+```
+
+Moving Average
+```{r}
+
+# Smoothing elevation 
+smooth_elevation <- function(elevation, weights=c(1/3,1/3,1/3)) {
+  
+  moving_avg_elevation <- rep(0,length(weights))
+  for (i in 1:length(weights)) {
+    j <- length(elevation) - (length(weights) - i)
+    moving_avg_elevation <- moving_avg_elevation + weights[i]*elevation[i:j]
+  }
+  return(moving_avg_elevation)
+}
+
+```
+
+Water Level
+```{r}
+
+# Write function for calculating water level using pressure difference and density
+water_level <- function(pressure, atm_pressure, density) {
+  depth_m <- ((pressure - atm_pressure) * 1000 * 6.89476) / (density * 9.80665) # m
+  depth_ft <- depth_m * 3.281 # ft
+  return(depth_ft)
+}
+
+```
+
+Pond Depth
+```{r}
+get_pond_depth <- function(pond_data, pond_elev, atm_time, 
+                           atmospheric, atm_elev) 
+{
+  time_len = atm_time[2] - atm_time[1] + 1
+  # Pressure difference cause by elevation difference
+  ediff <- psi_at_height(pond_elev) - psi_at_height(atm_elev) 
+
+  pressure <- pond_data$Pressure.psi[1:time_len] 
+  density <- pond_data$Density[1:time_len]
+  # Add pressure difference caused by elevation
+  atm_pressure <- atm_pressure_psi + ediff 
+  
+  atm <- atm_pressure[atm_time[1]:atm_time[2]] 
+  
+  depth <- water_level(pressure, atm, density)
+  
+  return(depth)
+}
+```
+
+
+Get the pond depth for all the ponds
+```{r}
+# 5/11 12:55 through 10/20 11:35
+baxter_depth <- get_pond_depth(baxter, 263, c(49,46689), atmospheric, 286)
+# 5/11 17:35 through 10/20 13:25
+commercialave_depth <- get_pond_depth(commercialave, 283, c(104,46713), atmospheric, 286)
+# 5/11 16:25 through 10/20 12:45
+doba4_depth <- get_pond_depth(doba4, 288, c(90,46705), atmospheric, 286)
+# 5/11 17:00 through 6/7 13:05  
+doba5_depth_early <- get_pond_depth(doba5_early, 283, c(98,7826), atmospheric, 286)
+# 8/10 16:05 through 11/15 14:30
+doba5_depth_late <- get_pond_depth(doba5_late, 283, c(26297,50503), atmospheric, 286)
+# 5/11 9:00 through 10/18 12:45
+doba7_depth <- get_pond_depth(doba7, 316, c(1,46129), atmospheric, 286)
+# 5/11 9:00 through 10/22 13:25 
+doba8_depth <- get_pond_depth(doba8, 329, c(1,47289), atmospheric, 286)
+# 5/11 13:50 through 10/20 12:00
+doba22_depth <- get_pond_depth(doba22, 267, c(59,46696), atmospheric, 286)
+# 5/11 15:50 through 10/20 13:05 
+doorcreek_depth <- get_pond_depth(doorcreek, 271, c(83,46709), atmospheric, 286)
+# 5/11 9:00 through 10/22 13:45
+elver_depth <- get_pond_depth(elver, 308, c(1,47293), atmospheric, 286)
+# 5/11 9:00 through 10/18 12:15
+garner_depth <- get_pond_depth(garner, 303, c(1,46123), atmospheric, 286)
+# 5/11 9:00 through 10/22 14:25
+greentree_depth <- get_pond_depth(greentree, 312, c(1,47301), atmospheric, 286)
+# 5/11 9:00 through 10/21 15:35
+hospital_depth <- get_pond_depth(hospital, 274, c(1,47027), atmospheric, 286)
+# 5/11 19:00 through 10/20 15:05 
+hpchurch_depth <- get_pond_depth(hpchurch, 297, c(121,46733), atmospheric, 286)
+# 5/11 9:00 through 10/21 15:25
+lot60_depth <- get_pond_depth(lot60, 262, c(1,47025), atmospheric, 286)
+# 5/11 9:00 through 10/20 10:45 
+madcity_depth <- get_pond_depth(madcity, 265, c(4,46681), atmospheric, 286)
+# 5/11 9:00 through 11/21 11:55
+manitou_depth <- get_pond_depth(manitou, 262, c(1,56055), atmospheric, 286)
+# 5/11 9:00 through 10/20 10:15 
+mariondunn_depth <- get_pond_depth(mariondunn, 266, c(1,46675), atmospheric, 286)
+# 8/9 12:25 through 10/22 13:15 
+midtown_depth <- get_pond_depth(midtown, 322, c(25965,47287), atmospheric, 286)
+# 5/11 9:00 through 10/20 14:40
+owen_depth <- get_pond_depth(owen, 299, c(1,46728), atmospheric, 286)
+# 5/11 9:00 through 10/22 14:05 
+twofountains_depth <- get_pond_depth(twofountains, 312, c(1,47297), atmospheric, 286)
+
+```
+
+Pond Pressure, Time, and Temp
+```{r}
+
+get_pond_pressure <- function(pond_data) 
+{
+  pond_pressure <- pond_data$Pressure.psi
+  return(pond_pressure)
+}
+
+baxter_pressure <- get_pond_pressure(baxter)
+commave_pressure <- get_pond_pressure(commercialave)
+doba4_pressure <- get_pond_pressure(doba4)
+doba5_pressure_early <- get_pond_pressure(doba5_early)
+doba5_pressure_late <- get_pond_pressure(doba5_late)
+doba7_pressure <- get_pond_pressure(doba7)
+doba8_pressure <- get_pond_pressure(doba8)
+doba22_pressure <- get_pond_pressure(doba22)
+doorcreek_pressure <- get_pond_pressure(doorcreek)
+elver_pressure <- get_pond_pressure(elver)
+garner_pressure <- get_pond_pressure(garner)
+greentree_pressure <- get_pond_pressure(greentree)
+hospital_pressure <- get_pond_pressure(hospital)
+hpchurch_pressure <- get_pond_pressure(hpchurch)
+lot60_pressure <- get_pond_pressure(lot60)
+madcity_pressure <- get_pond_pressure(madcity)
+manitou_pressure <- get_pond_pressure(manitou)
+mariondunn_pressure <- get_pond_pressure(mariondunn)
+midtown_pressure <- get_pond_pressure(midtown)
+owen_pressure <- get_pond_pressure(owen)
+twofountains_pressure <- get_pond_pressure(twofountains)
+
+get_pond_datetime <- function(pond_data) 
+{
+  pond_datetime <- pond_data$DateTime
+  #pond_datetime <- as.Date(pond_datetime_str, "%m/%d/%Y %H:%M:")
+  return(pond_datetime)
+}
+
+baxter_datetime <- get_pond_datetime(baxter)
+commave_datetime <- get_pond_datetime(commercialave)
+doba4_datetime <- get_pond_datetime(doba4)
+doba5_datetime_early <- get_pond_datetime(doba5_early)
+doba5_datetime_late <- get_pond_datetime(doba5_late)
+doba7_datetime <- get_pond_datetime(doba7)
+doba8_datetime <- get_pond_datetime(doba8)
+doba22_datetime <- get_pond_datetime(doba22)
+doorcreek_datetime <- get_pond_datetime(doorcreek)
+elver_datetime <- get_pond_datetime(elver)
+garner_datetime <- get_pond_datetime(garner)
+greentree_datetime <- get_pond_datetime(greentree)
+hospital_datetime <- get_pond_datetime(hospital)
+hpchurch_datetime <- get_pond_datetime(hpchurch)
+lot60_datetime <- get_pond_datetime(lot60)
+madcity_datetime <- get_pond_datetime(madcity)
+manitou_datetime <- get_pond_datetime(manitou)
+mariondunn_datetime <- get_pond_datetime(mariondunn)
+midtown_datetime <- get_pond_datetime(midtown)
+owen_datetime <- get_pond_datetime(owen)
+twofountains_datetime <- get_pond_datetime(twofountains)
+
+get_pond_temp <- function(pond_data) 
+{
+  pond_temp <- pond_data$Temp.C
+  return(pond_temp)
+}
+
+baxter_temp <- get_pond_temp(baxter)
+commave_temp <- get_pond_temp(commercialave)
+doba4_temp <- get_pond_temp(doba4)
+doba5_temp_early <- get_pond_temp(doba5_early)
+doba5_temp_late <- get_pond_temp(doba5_late)
+doba7_temp <- get_pond_temp(doba7)
+doba8_temp <- get_pond_temp(doba8)
+doba22_temp <- get_pond_temp(doba22)
+doorcreek_temp <- get_pond_temp(doorcreek)
+elver_temp <- get_pond_temp(elver)
+garner_temp <- get_pond_temp(garner)
+greentree_temp <- get_pond_temp(greentree)
+hospital_temp <- get_pond_temp(hospital)
+hpchurch_temp <- get_pond_temp(hpchurch)
+lot60_temp <- get_pond_temp(lot60)
+madcity_temp <- get_pond_temp(madcity)
+manitou_temp <- get_pond_temp(manitou)
+mariondunn_temp <- get_pond_temp(mariondunn)
+midtown_temp <- get_pond_temp(midtown)
+owen_temp <- get_pond_temp(owen)
+twofountains_temp <- get_pond_temp(twofountains)
+
+```
+
+Water Level Plots
+```{r}
+# Water level plots with outlet locations added
+plot_pond <- function(pond_dates, depth, col, name, outlet_depth) {
+  plot(depth, type="l", col=col, lwd=3, pch=17, ylim = c(0,7),
+     main=paste(name,"Water Level"), 
+     xlab="Date", 
+     ylab="Water Level (feet)", xaxt='n')
+    # add a date axis
+  grid()
+  abline(h=outlet_depth, col="black", lwd=3)
+  legend("topright",c("Outlet Location"), 
+     col=c("black"), lty=1, lwd=3)
+  get_dates <- function(datetime) {
+    d = strsplit(datetime,' ')[[1]][1]
+    d = strsplit(d,'/')[[1]]
+    return(paste(d[1], '/', d[2], sep=""))
+  }
+  
+  dates = lapply(pond_dates,get_dates)
+  idx_change=c()
+  last_d = 0
+  for (i in 1:length(dates)) {
+    if (dates[[i]] != last_d) {
+      idx_change = append(idx_change, i)
+      last_d = dates[i]
+    }
+  }
+    
+  axis(1,at=idx_change,labels=dates[idx_change])
+}
+
+plot_pond(baxter_datetime, baxter_depth, "dodgerblue4", "Baxter", 11/12)
+plot_pond(commave_datetime, commercialave_depth, "red", "Commercial Ave", 14.5/12)
+plot_pond(doba4_datetime, doba4_depth, "green", "Dobson A4", 14.5/12)
+plot_pond(doba5_datetime_early, doba5_depth_early, "gold", "Dobson A5 Early", 15.5/12)
+plot_pond(doba5_datetime_late, doba5_depth_late, "gold", "Dobson A5 Late", 15.5/12)
+plot_pond(doba7_datetime, doba7_depth, "magenta", "Dobson A7", 12/12)
+plot_pond(doba8_datetime, doba8_depth, "orange", "Dobson A8", 42/12)
+plot_pond(doba22_datetime, doba22_depth, "gray", "Dobson A22", 0)
+plot_pond(doorcreek_datetime, doorcreek_depth, "purple", "Door Creek", 17/12)
+plot_pond(elver_datetime, elver_depth, "brown", "Elver", 20.5/12)
+plot_pond(garner_datetime, garner_depth, "skyblue", "Garner", 14/12)
+plot_pond(greentree_datetime, greentree_depth, "coral1", "Greentree", 14.5/12)
+plot_pond(hospital_datetime, hospital_depth, "lavender", "Hospital", 0)
+plot_pond(hpchurch_datetime, hpchurch_depth, "forestgreen", "High Point Church", 19/12)
+plot_pond(lot60_datetime, lot60_depth, "yellow", "Lot 60", 3.5/12)
+plot_pond(madcity_datetime, madcity_depth, "maroon", "Mad City", 10/12)
+plot_pond(manitou_datetime, manitou_depth, "pink", "Manitou", 8/12)
+plot_pond(mariondunn_datetime, mariondunn_depth, "royalblue", "Marion-Dunn", 6.5/12)
+plot_pond(midtown_datetime, midtown_depth, "lightsalmon", "Midtown", 27.25/12)
+plot_pond(owen_datetime, owen_depth, "tan", "Owen", 0)
+plot_pond(twofountains_datetime, twofountains_depth, "darkgray", "Two Fountains", 16.5/12)
+
+```
+
+Gradual decline rate in water level
+```{r}
+# Used to find slopes of water level for gradual decline rates
+ y <- doorcreek_depth[1000:15000]
+ x_seq <- seq_along(y)
+ x <- x_seq
+ model <- lm(y ~ x)
+plot_pond(doorcreek_datetime[1000:15000], doorcreek_depth[1000:15000], "dodgerblue4", "Manitou", 0)
+ abline(model, col = "red")
+ coefficients <- coef(model)
+ coefficients
+```
+
+Create data frame and write csv for September water levels (can't remember why I needed this?)
+```{r}
+pond_depth_temp_df <- data.frame(baxterdepth = baxter_depth[39278:39854], commavedepth = commercialave_depth[39222:39798], doba4depth = doba4_depth[39236:39812], doba7depth = doba7_depth[39325:39901], doba8depth = doba8_depth[39325:39901], doba22depth = doba22_depth[39267:39843], doorcreekdepth = doorcreek_depth[39243:39819], elverdepth = elver_depth[39325:39901], garnerdepth = garner_depth[39325:39901], greentreedepth = greentree_depth[39325:39901], hospitaldepth = hospital_depth[39325:39901], hpchurchdepth = hpchurch_depth[39205:39781], lot60depth = lot60_depth[39325:39901], madcitydepth = madcity_depth[39325:39901], manitoudepth = manitou_depth[39325:39901], mariondunndepth = mariondunn_depth[39325:39901], midtowndepth = midtown_depth[13364:13940], owendepth = owen_depth[39325:39901], twofountainsdepth = twofountains_depth[39325:39901], baxtertemp = baxter$Temp.C[39278:39854], commavetemp = commercialave$Temp.C[39222:39798], doba4temp = doba4$Temp.C[39236:39812], doba7temp = doba7$Temp.C[39325:39901], doba8temp = doba8$Temp.C[39325:39901], doba22temp = doba22$Temp.C[39267:39843], doorcreektemp = doorcreek$Temp.C[39243:39819], elvertemp = elver$Temp.C[39325:39901], garnertemp = garner$Temp.C[39325:39901], greentreetemp = greentree$Temp.C[39325:39901], hospitaltemp = hospital$Temp.C[39325:39901], hpchurchtemp = hpchurch$Temp.C[39205:39781], lot60temp = lot60$Temp.C[39325:39901], madcitytemp = madcity$Temp.C[39325:39901], manitoutemp = manitou$Temp.C[39325:39901], mariondunntemp = mariondunn$Temp.C[39325:39901], midtowntemp = midtown$Temp.C[13364:13940], owentemp = owen$Temp.C[39325:39901], twofountainstemp = twofountains$Temp.C[39325:39901])
+
+write.csv(pond_depth_temp_df, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/September_Water_Levels.csv", row.names=FALSE)
+```
+
+Save pond depth/temp as csv
+```{r}
+# Function to save csv
+get_pond_csv <- function(pond_datetime, pond_depth, pond_temp, file_path) {
+  pond_df <- data.frame(DateTime = pond_datetime, Depth.ft = pond_depth, Temp.C = pond_temp)
+  write.csv(pond_df, file = file_path, row.names=FALSE)
+}
+
+# Baxter
+get_pond_csv(baxter_datetime, baxter_depth, baxter_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Baxter_Water_Level.csv")
+# Commercial Ave
+get_pond_csv(commave_datetime, commercialave_depth[1:46607], commave_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/CommAve_Water_Level.csv")
+# DobA4
+get_pond_csv(doba4_datetime, doba4_depth[1:46613], doba4_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA4_Water_Level.csv")
+# DobA7
+get_pond_csv(doba7_datetime, doba7_depth[1:46126], doba7_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA7_Water_Level.csv")
+# DobA8
+get_pond_csv(doba8_datetime, doba8_depth[1:47286], doba8_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA8_Water_Level.csv")
+# DobA22
+get_pond_csv(doba22_datetime, doba22_depth[1:46635], doba22_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA22_Water_Level.csv")
+# Door Creek
+get_pond_csv(doorcreek_datetime, doorcreek_depth[1:46624], doorcreek_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DoorCreek_Water_Level.csv")
+# Elver
+get_pond_csv(elver_datetime, elver_depth[1:47290], elver_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Elver_Water_Level.csv")
+# Garner
+get_pond_csv(garner_datetime, garner_depth[1:46120], garner_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Garner_Water_Level.csv")
+# Greentree
+get_pond_csv(greentree_datetime, greentree_depth[1:47298], greentree_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Greentree_Water_Level.csv")
+# Hospital
+get_pond_csv(hospital_datetime, hospital_depth[1:47024], hospital_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Hospital_Water_Level.csv")
+# High Point Church
+get_pond_csv(hpchurch_datetime, hpchurch_depth[1:46610], hpchurch_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/HPChurch_Water_Level.csv")
+# Lot60
+get_pond_csv(lot60_datetime, lot60_depth[1:47022], lot60_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Lot60_Water_Level.csv")
+# Mad City
+get_pond_csv(madcity_datetime, madcity_depth, madcity_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/MadCity_Water_Level.csv")
+# Manitou
+get_pond_csv(manitou_datetime, manitou_depth[1:46668], manitou_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Manitou_Water_Level.csv")
+# Marion Dunn
+get_pond_csv(mariondunn_datetime, mariondunn_depth[1:46672], mariondunn_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/MarionDunn_Water_Level.csv")
+# Midtown
+get_pond_csv(midtown_datetime, midtown_depth, midtown_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Midtown_Water_Level.csv")
+# Owen
+get_pond_csv(owen_datetime, owen_depth[1:46725], owen_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Owen_Water_Level.csv")
+# Two Fountains
+get_pond_csv(twofountains_datetime, twofountains_depth[1:47294], twofountains_temp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/TwoFountains_Water_Level.csv")
+
+```
+
+```{r}
+# Function to save csv
+get_pond_csv <- function(pond_datetime, pond_depth, pond_temp, file_path) {
+  pond_df <- data.frame(DateTime = pond_datetime, Depth.ft = pond_depth, Temp.C = pond_temp)
+  write.csv(pond_df, file = file_path, row.names=FALSE)
+}
+
+get_pond_csv(doba5_datetime_late[1:24207], doba5_depth_late[1:24207], doba5_temp_late[1:24207], "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA5_Water_Level.csv")
+```
+
+Pressure Plots:
+```{r}
+plot_pres <- function(pond_dates, pond_pressure, color, name) {
+  plot(pond_pressure, type="l", lwd=4, pch=17, main=paste(name,"Pressure"), xlab="Date Time", ylab="Pressure (psi)", col=color, xaxt='n', ylim = c(14,17))
+  # add a date axis
+  get_dates <- function(datetime) {
+    d = strsplit(datetime,' ')[[1]][1]
+    d = strsplit(d,'/')[[1]]
+    return(paste(d[1], '/', d[2], sep=""))
+  }
+  
+  dates = lapply(pond_dates,get_dates)
+  idx_change=c()
+  last_d = 0
+  for (i in 1:length(dates)) {
+    if (dates[[i]] != last_d) {
+      idx_change = append(idx_change, i)
+      last_d = dates[i]
+    }
+  }
+    
+  axis(1,at=idx_change,labels=dates[idx_change])
+}
+
+plot_pres(baxter_datetime, baxter_pressure, "dodgerblue4", "Baxter") 
+plot_pres(commave_datetime, commave_pressure, "red", "Commercial Ave") 
+plot_pres(doba4_datetime, doba4_pressure, "green", "Dobson A4") 
+plot_pres(doba5_datetime, doba5_pressure, "gold", "Dobson A5") 
+plot_pres(doba7_datetime, doba7_pressure, "magenta", "Dobson A7") 
+plot_pres(doba8_datetime, doba8_pressure, "orange", "Dobson A8") 
+plot_pres(doba22_datetime, doba22_pressure, "gray", "Dobson A22") 
+plot_pres(doorcreek_datetime, doorcreek_pressure, "purple", "Door Creek") 
+plot_pres(elver_datetime, elver_pressure, "brown", "Elver") 
+plot_pres(garner_datetime, garner_pressure, "skyblue", "Garner")
+plot_pres(greentree_datetime, greentree_pressure, "coral1", "Greentree")
+plot_pres(hospital_datetime, hospital_pressure, "lavender", "Hospital") 
+plot_pres(hpchurch_datetime, hpchurch_pressure, "forestgreen", "High Point Church") 
+plot_pres(lot60_datetime, lot60_pressure, "yellow", "Lot 60") 
+plot_pres(madcity_datetime, madcity_pressure, "maroon", "Mad City")
+plot_pres(manitou_datetime, manitou_pressure, "pink", "Manitou") 
+plot_pres(mariondunn_datetime, mariondunn_pressure, "royalblue", "Marion Dunn")
+plot_pres(midtown_datetime, midtown_pressure, "lightsalmon", "Midtown")
+plot_pres(owen_datetime, owen_pressure, "tan", "Owen") 
+plot_pres(twofountains_datetime, twofountains_pressure, "darkgray", "Two Fountains") 
+```
+
+Pressure Histograms:
+```{r}
+plot_histp <- function(pond_pressure, color, name) {
+  hist(pond_pressure, probability=TRUE, breaks=1000, main=paste(name,"Histogram"), xlab="Pressure (psi)", ylab="Density", col=color, border=color, xlim = c(14,16))
+  lines(density(pond_pressure),col="black",lwd=2)
+
+}
+
+plot_histp(baxter_pressure, "dodgerblue4", "Baxter") 
+plot_histp(commave_pressure, "red", "Commercial Ave") 
+plot_histp(doba4_pressure, "green", "Dobson A4") 
+plot_histp(doba5_pressure, "black", "Dobson A5") 
+plot_histp(doba7_pressure, "magenta", "Dobson A7") 
+plot_histp(doba8_pressure, "orange", "Dobson A8") 
+plot_histp(doba22_pressure, "gray", "Dobson A22") 
+plot_histp(doorcreek_pressure, "purple", "Door Creek") 
+plot_histp(elver_pressure, "brown", "Elver") 
+plot_histp(garner_pressure, "skyblue", "Garner")
+plot_histp(greentree_pressure, "coral1", "Greentree")
+plot_histp(hospital_pressure, "lavender", "Hospital") 
+plot_histp(hpchurch_pressure, "forestgreen", "High Point Church") 
+plot_histp(lot60_pressure, "yellow", "Lot 60") 
+plot_histp(madcity_pressure, "maroon", "Mad City")
+plot_histp(manitou_pressure, "pink", "Manitou") 
+plot_histp(mariondunn_pressure, "royalblue", "Marion Dunn")
+#plot_histp(midtown_pressure, "lightsalmon", "Midtown")
+plot_histp(owen_pressure, "tan", "Owen") 
+plot_histp(twofountains_pressure, "darkgray", "Two Fountains") 
+```
+
+Water Level Histograms:
+```{r}
+plot_histd <- function(pond_depth, color, name, outlet_depth) {
+  hist(pond_depth, probability=TRUE, breaks=100, xlim=c(0,5), main=paste(name,"Histogram"), xlab="Water Level (ft)", ylab="Density", col=color, border=color)
+  lines(density(pond_depth),col="black",lwd=2)
+  grid()
+  abline(v=outlet_depth, col="black", lwd=2)
+  legend("topright",c("Outlet Location"), 
+     col=c("black"), lty=1, lwd=2)
+}
+
+bax_histd <- plot_histd(na.omit(baxter_depth), "dodgerblue4", "Baxter", 11/12) 
+comm_histd <- plot_histd(na.omit(commercialave_depth), "red", "Commercial Ave", 14.5/12) 
+da4_histd <- plot_histd(na.omit(doba4_depth), "green", "Dobson A4", 14.5/12) 
+da5early_histd <- plot_histd(doba5_depth_early, "gold", "Dobson A5", 15.5/12) 
+da5late_histd <- plot_histd(doba5_depth_late, "gold", "Dobson A5", 15.5/12)
+da7_histd <- plot_histd(na.omit(doba7_depth), "magenta", "Dobson A7", 12/12) 
+da8_histd <- plot_histd(na.omit(doba8_depth), "orange", "Dobson A8", 42/12) 
+da22_histd <- plot_histd(na.omit(doba22_depth), "gray", "Dobson A22", 0) 
+dc_histd <- plot_histd(na.omit(doorcreek_depth), "purple", "Door Creek", 17/12) 
+elver_histd <- plot_histd(na.omit(elver_depth), "brown", "Elver", 20.5/12) 
+gar_histd <- plot_histd(na.omit(garner_depth), "skyblue", "Garner", 14/12)
+gt_histd <- plot_histd(na.omit(greentree_depth), "coral1", "Greentree", 14.5/12)
+hos_histd <- plot_histd(na.omit(hospital_depth), "lavender", "Hospital", 0) 
+hp_histd <- plot_histd(na.omit(hpchurch_depth), "forestgreen", "High Point Church", 19/12) 
+l60_histd <- plot_histd(na.omit(lot60_depth), "yellow", "Lot 60", 3.5/12) 
+mc_histd <- plot_histd(na.omit(madcity_depth), "maroon", "Mad City", 10/12)
+man_histd <- plot_histd(na.omit(manitou_depth), "pink", "Manitou", 8/12) 
+md_histd <- plot_histd(na.omit(mariondunn_depth), "royalblue", "Marion Dunn", 6.5/12)
+mid_histd <- plot_histd(midtown_depth, "lightsalmon", "Midtown", 27.25/12)
+owen_histd <- plot_histd(na.omit(owen_depth), "tan", "Owen", 0) 
+tf_histd <- plot_histd(na.omit(twofountains_depth), "darkgray", "Two Fountains", 16.5/12) 
+```
+Finding most common water levels in each pond
+```{r}
+# Create a histogram
+hist_obj <- hist(manitou_depth, breaks=100, plot = FALSE)
+
+# Print the counts (frequencies) for each bin
+print(hist_obj$counts)
+
+# Calculate bin midpoints
+bin_midpoints <- (hist_obj$breaks[-1] + hist_obj$breaks[-length(hist_obj$breaks)]) / 2
+
+# Print bin midpoints
+print(bin_midpoints)
+```
+
+Water level histograms for AGU poster
+```{r}
+width <- 12  # Width of the plot in inches
+height <- 9  # Height of the plot in inches
+
+
+plot_histd <- function(pond_depth, color, name) {
+  hist(pond_depth, probability=TRUE, breaks=1000, main="", xlab="", ylab="", xlim=c(0,4), ylim=c(0,3), cex.axis = 3, col=color, border=color)
+  lines(density(pond_depth),col="black",lwd=2)
+  box(lty = 'solid', col = 'black')
+  grid()
+  abline(v=(14/12), col="red", lwd=4)
+  legend("topright",c("Outflow Location"), 
+     col=c("red"), lty=1, lwd=4, cex=3, bty="n")
+}
+
+
+#png("Baxter_measure.png", width = width, height = height, units = "in", res = 300, bg = "transparent")
+bax_agu_plot <- plot_histd(na.omit(baxter_depth), "thistle", "Baxter")
+#dev.off()
+
+#png("MarionDunn_measure.png", width = width, height = height, units = "in", res = 300, bg = "transparent")
+md_agu_plot <- plot_histd(na.omit(mariondunn_depth), "thistle", "MarionDunn")
+#dev.off()
+
+png("Garner_measure.png", width = width, height = height, units = "in", res = 300, bg = "transparent")
+gar_agu_plot <- plot_histd(na.omit(garner_depth), "thistle", "Garner")
+dev.off()
+```
+
+
+```{r}
+#plot_pond(garner_datetime, garner_depth, "skyblue", "Garner")
+
+png("Garner_WL_measure.png", width = width, height = height, units = "in", res = 300, bg = "transparent")
+plot(garner_depth, col="thistle",type="l", lwd=4, pch=17, xlab="", ylab="", main="", xaxt="n", cex.axis = 3, ylim=c(0,5))
+grid()
+abline(h=(14/12), col="red", lwd=4)
+
+# add a date axis
+
+# strip datetime into the string to plot
+# month/day
+get_dates <- function(dates) {
+  d = strsplit(dates,' ')[[1]][1]
+  d = strsplit(d,'/')[[1]]
+  return(paste(d[1], '/', d[2], sep=""))
+}
+
+# apply conversion
+dates = lapply(garner_datetime,get_dates)
+
+# get index corresponding to the start of each day
+get_day_idx <- function(dates) {
+  idx_change=c()
+  last_d = 0
+  for (i in 1:length(dates)) {
+    if (dates[[i]] != last_d) {
+      idx_change = append(idx_change, i)
+      last_d = dates[i]
+    }
+  }
+  return(idx_change)
+}
+
+# get index corresponding to the start of each day
+get_month_idx <- function(dates) {
+  idx_change=c()
+  last_m = 0
+  for (i in 1:length(dates)) {
+    curr_m = substr(dates[[i]],1,2)
+    if (curr_m != last_m) {
+      idx_change = append(idx_change, i)
+      last_m = curr_m
+    }
+  }
+  return(idx_change)
+}
+
+idx_change <- get_month_idx(dates)
+
+axis(1,at=idx_change,labels=dates[idx_change], cex.axis = 3)
+legend("topright",c("Outflow Location"), 
+     col=c("red"), lty=1, lwd=4, cex=3, bty="n")
+dev.off()
+
+```
+
+
+Temperature Histograms:
+```{r}
+plot_histt <- function(pond_temp, color, name) {
+  hist(pond_temp, probability=TRUE, breaks=100, main=paste(name,"Histogram"), xlab="Temperature (degrees C)", ylab="Density", xlim = c(0,40), col=color, border=color)
+  pond_temp <- na.omit(pond_temp)
+  lines(density(pond_temp),col="black",lwd=2)
+  grid()
+}
+
+plot_histt(baxter$Temp.C, "dodgerblue4", "Baxter") 
+plot_histt(commercialave$Temp.C, "red", "Commercial Ave") 
+plot_histt(doba4$Temp.C, "green", "Dobson A4") 
+plot_histt(doba5$Temp.C, "gold", "Dobson A5")
+plot_histt(doba7$Temp.C, "magenta", "Dobson A7") 
+plot_histt(doba8$Temp.C, "orange", "Dobson A8") 
+plot_histt(doba22$Temp.C, "gray", "Dobson A22") 
+plot_histt(doorcreek$Temp.C, "purple", "Door Creek") 
+plot_histt(elver$Temp.C, "brown", "Elver") 
+plot_histt(garner$Temp.C, "skyblue", "Garner")
+plot_histt(greentree$Temp.C, "coral1", "Greentree")
+plot_histt(hospital$Temp.C, "lavender", "Hospital") 
+plot_histt(hpchurch$Temp.C, "forestgreen", "High Point Church") 
+plot_histt(lot60$Temp.C, "yellow", "Lot 60") 
+plot_histt(madcity$Temp.C, "maroon", "Mad City")
+plot_histt(manitou$Temp.C, "pink", "Manitou") 
+plot_histt(mariondunn$Temp.C, "royalblue", "Marion Dunn")
+plot_histt(midtown$Temp.C, "lightsalmon", "Midtown")
+plot_histt(owen$Temp.C, "tan", "Owen") 
+plot_histt(twofountains$Temp.C, "darkgray", "Two Fountains") 
+
+```
