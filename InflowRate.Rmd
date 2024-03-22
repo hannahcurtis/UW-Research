@@ -1,0 +1,225 @@
+---
+title: "Inflow_Rate"
+author: "Hannah Curtis"
+date: "2024-01-30"
+output: html_document
+---
+This file calculates the slope of the increase in water level for several storms as the rate of inflow in each pond. The storms included are 7/28, 8/14, and 9/25. 
+
+Need to add remaining watershed areas.
+
+Updated: 3/5/24
+
+Read in water level files
+```{r}
+baxter_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Baxter/Baxter_Water_Level.csv")
+commave_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/CommAve/CommAve_Water_Level.csv")
+doba4_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA4/DobA4_Water_Level.csv")
+doba5_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA5/DobA5_Water_Level.csv")
+doba7_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA7/DobA7_Water_Level.csv")
+doba8_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA8/DobA8_Water_Level.csv")
+doba22_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA22/DobA22_Water_Level.csv")
+doorcreek_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DoorCreek/DoorCreek_Water_Level.csv")
+elver_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Elver/Elver_Water_Level.csv")
+garner_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Garner/Garner_Water_Level.csv")
+greentree_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Greentree/Greentree_Water_Level.csv")
+hospital_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Hospital/Hospital_Water_Level.csv")
+hpchurch_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/HPChurch/HPChurch_Water_Level.csv")
+lot60_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Lot60/Lot60_Water_Level.csv")
+madcity_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/MadCity/MadCity_Water_Level.csv")
+manitou_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Manitou/Manitou_Water_Level.csv")
+mariondunn_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/MarionDunn/MarionDunn_Water_Level.csv")
+midtown_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Midtown/Midtown_Water_Level.csv")
+owen_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Owen/Owen_Water_Level.csv")
+twofountains_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/TwoFountains/TwoFountains_Water_Level.csv")
+```
+
+Pond and watershed areas
+```{r}
+#without doba5 and midtown for storm one
+pond_areas_1 <- c(41430, 54475, 32388, 186680, 25596, 159671, 50304, 93049, 51799, 79133, 59167, 64464, 29134, 16998, 13893, 48773, 114855, 45805)
+#without doba5 and midtown for storm one
+watershed_areas_1 <- c(1, 1, 2507478, 24962828, 4990450, 1, 1, 1, 1, 1, 10782337, 20726969, 6311395, 2160762, 3734247, 511053, 40122697, 6437832)
+
+pond_areas <- c(41430, 54475, 32388, 186680, 25596, 159671, 50304, 48765, 93049, 51799, 79133, 59167, 64464, 29134, 16998, 13893, 39806, 48773, 114855, 45805)
+
+watershed_areas <- c(1, 1, 2507478, 24962828, 4990450, 1, 1, 3446096, 1, 1, 1, 10782337, 20726969, 6311395, 2160762, 3734247, 4732612, 511053, 40122697, 6437832)
+```
+
+Function for finding inflow rate
+```{r}
+# Function for finding inflow rate
+get_inflow_rate <- function(pond_wl, pond_datetime, start_time, end_time) {
+  y <- pond_wl[start_time: end_time]
+  x_seq <- seq_along(y)
+  x <- x_seq
+  model <- lm(y ~ x)
+  slope <- coef(model)[2]
+  return(slope*(1440/5))
+}
+
+```
+
+Plot pond function
+```{r}
+plot_pond <- function(pond_dates, depth, col, name, outlet_depth) {
+  plot(depth, type="l", col=col, lwd=3, pch=17, ylim = c(0,7),
+     main=paste(name,"Water Level"), 
+     xlab="Date", 
+     ylab="Water Level (feet)", xaxt='n')
+    # add a date axis
+  grid()
+  abline(h=outlet_depth, col="black", lwd=3)
+  legend("topright",c("Outlet Location"), 
+     col=c("black"), lty=1, lwd=3)
+  get_dates <- function(datetime) {
+    d = strsplit(datetime,' ')[[1]][1]
+    d = strsplit(d,'/')[[1]]
+    return(paste(d[1], '/', d[2], sep=""))
+  }
+  
+  dates = lapply(pond_dates,get_dates)
+  idx_change=c()
+  last_d = 0
+  for (i in 1:length(dates)) {
+    if (dates[[i]] != last_d) {
+      idx_change = append(idx_change, i)
+      last_d = dates[i]
+    }
+  }
+    
+  axis(1,at=idx_change,labels=dates[idx_change])
+}
+```
+
+Plotting water level to determine start and end times
+```{r}
+
+get_date_plot <- function(pond_wl, pond_datetime, start_time, end_time) {
+ y <- pond_wl[start_time:end_time]
+ x_seq <- seq_along(y)
+ x <- x_seq
+ model <- lm(y ~ x)
+ plot_pond(pond_datetime[start_time:end_time], pond_wl[start_time:end_time], "lightblue", "", 0)
+ abline(model, col = "black")
+}
+
+test <- get_date_plot(doba5_wl$Depth.ft, doba5_wl$DateTime, 13350, 13360)
+
+```
+
+Finding inflow rate for storm 1: 7/28
+```{r}
+# Inflow rate
+baxter_inf_rate_1 <- get_inflow_rate(baxter_wl$Depth.ft, baxter_wl$DateTime, 22573, 22576)
+commave_inf_rate_1 <- get_inflow_rate(commave_wl$Depth.ft, commave_wl$DateTime, 22517, 22522)
+doba4_inf_rate_1 <- get_inflow_rate(doba4_wl$Depth.ft, doba4_wl$DateTime, 22531, 22539)
+#doba5_inf_rate_1 <- get_inflow_rate(doba5_wl$Depth.ft, doba5_wl$DateTime)
+doba7_inf_rate_1 <- get_inflow_rate(doba7_wl$Depth.ft, doba7_wl$DateTime, 22620, 22622)
+doba8_inf_rate_1 <- get_inflow_rate(doba8_wl$Depth.ft, doba8_wl$DateTime, 22621, 22624)
+doba22_inf_rate_1 <- get_inflow_rate(doba22_wl$Depth.ft, doba22_wl$DateTime,22562, 22566)
+doorcreek_inf_rate_1 <- get_inflow_rate(doorcreek_wl$Depth.ft, doorcreek_wl$DateTime, 22540, 22550)
+elver_inf_rate_1 <- get_inflow_rate(elver_wl$Depth.ft, elver_wl$DateTime, 22621, 22630)
+garner_inf_rate_1 <- get_inflow_rate(garner_wl$Depth.ft, garner_wl$DateTime, 22620, 22624)
+greentree_inf_rate_1 <- get_inflow_rate(greentree_wl$Depth.ft, greentree_wl$DateTime, 22622, 22628)
+hospital_inf_rate_1 <- get_inflow_rate(hospital_wl$Depth.ft, hospital_wl$DateTime, 22619, 22624)
+hpchurch_inf_rate_1 <- get_inflow_rate(hpchurch_wl$Depth.ft, hpchurch_wl$DateTime, 22501, 22508)
+lot60_inf_rate_1 <- get_inflow_rate(lot60_wl$Depth.ft, lot60_wl$DateTime, 22618, 22628)
+madcity_inf_rate_1 <- get_inflow_rate(madcity_wl$Depth.ft, madcity_wl$DateTime, 22621, 22623)
+manitou_inf_rate_1 <- get_inflow_rate(manitou_wl$Depth.ft, manitou_wl$DateTime, 22620, 22624)
+mariondunn_inf_rate_1 <- get_inflow_rate(mariondunn_wl$Depth.ft, mariondunn_wl$DateTime, 22620, 22624)
+#midtown_inf_rate_1 <- get_inflow_rate(midtown_wl$Depth.ft, midtown_wl$DateTime)
+owen_inf_rate_1 <- get_inflow_rate(owen_wl$Depth.ft, owen_wl$DateTime, 22619, 22624)
+twofountains_inf_rate_1 <- get_inflow_rate(twofountains_wl$Depth.ft, twofountains_wl$DateTime, 22621, 22626)
+
+inflow_rate_1 <- c(hospital_inf_rate_1,lot60_inf_rate_1,garner_inf_rate_1,doba7_inf_rate_1,owen_inf_rate_1,hpchurch_inf_rate_1,doba8_inf_rate_1,elver_inf_rate_1,twofountains_inf_rate_1,greentree_inf_rate_1,mariondunn_inf_rate_1,manitou_inf_rate_1,madcity_inf_rate_1,baxter_inf_rate_1,doba22_inf_rate_1,doba4_inf_rate_1,doorcreek_inf_rate_1,commave_inf_rate_1)
+
+# Inflow rate/watershed area
+inflow_1_wat_norm <- inflow_rate_1/watershed_areas_1
+
+# Inflow rate/pond area
+inflow_1_pond_norm <- inflow_rate_1/pond_areas_1
+```
+
+Finding inflow rate for storm 2: 8/14
+```{r}
+# Inflow rate
+baxter_inf_rate_2 <- get_inflow_rate(baxter_wl$Depth.ft, baxter_wl$DateTime, 27315,27332)
+commave_inf_rate_2 <- get_inflow_rate(commave_wl$Depth.ft, commave_wl$DateTime, 27220,27280)
+doba4_inf_rate_2 <- get_inflow_rate(doba4_wl$Depth.ft, doba4_wl$DateTime, 27240,27305)
+doba5_inf_rate_2 <- get_inflow_rate(doba5_wl$Depth.ft, doba5_wl$DateTime, 1020,1100)
+doba7_inf_rate_2 <- get_inflow_rate(doba7_wl$Depth.ft, doba7_wl$DateTime, 27330,27390)
+doba8_inf_rate_2 <- get_inflow_rate(doba8_wl$Depth.ft, doba8_wl$DateTime, 27330,27380)
+doba22_inf_rate_2 <- get_inflow_rate(doba22_wl$Depth.ft, doba22_wl$DateTime, 27270,27330)
+doorcreek_inf_rate_2 <- get_inflow_rate(doorcreek_wl$Depth.ft, doorcreek_wl$DateTime, 27240,27315)
+elver_inf_rate_2 <- get_inflow_rate(elver_wl$Depth.ft, elver_wl$DateTime, 27335,27385)
+garner_inf_rate_2 <- get_inflow_rate(garner_wl$Depth.ft, garner_wl$DateTime, 27325,2735)
+greentree_inf_rate_2 <- get_inflow_rate(greentree_wl$Depth.ft, greentree_wl$DateTime, 27325,27382)
+hospital_inf_rate_2 <- get_inflow_rate(hospital_wl$Depth.ft, hospital_wl$DateTime, 27330,27380)
+hpchurch_inf_rate_2 <- get_inflow_rate(hpchurch_wl$Depth.ft, hpchurch_wl$DateTime, 27230,27270)
+lot60_inf_rate_2 <- get_inflow_rate(lot60_wl$Depth.ft, lot60_wl$DateTime, 27300,27390)
+madcity_inf_rate_2 <- get_inflow_rate(madcity_wl$Depth.ft, madcity_wl$DateTime, 27335,27380)
+manitou_inf_rate_2 <- get_inflow_rate(manitou_wl$Depth.ft, manitou_wl$DateTime, 27330,27380)
+mariondunn_inf_rate_2 <- get_inflow_rate(mariondunn_wl$Depth.ft, mariondunn_wl$DateTime, 27330,27380)
+midtown_inf_rate_2 <- get_inflow_rate(midtown_wl$Depth.ft, midtown_wl$DateTime, 1350,1430)
+owen_inf_rate_2 <- get_inflow_rate(owen_wl$Depth.ft, owen_wl$DateTime, 27320,27380)
+twofountains_inf_rate_2 <- get_inflow_rate(twofountains_wl$Depth.ft, twofountains_wl$DateTime, 26500,27400)
+
+inflow_rate_2 <- c(hospital_inf_rate_2,lot60_inf_rate_2,garner_inf_rate_2,doba7_inf_rate_2,owen_inf_rate_2,hpchurch_inf_rate_2,doba8_inf_rate_2,midtown_inf_rate_2,elver_inf_rate_2,twofountains_inf_rate_2,greentree_inf_rate_2,mariondunn_inf_rate_2,manitou_inf_rate_2,madcity_inf_rate_2,baxter_inf_rate_2,doba22_inf_rate_2,doba5_inf_rate_2,doba4_inf_rate_2,doorcreek_inf_rate_2,commave_inf_rate_2)
+
+# Inflow rate/watershed area
+inflow_2_wat_norm <- inflow_rate_2/watershed_areas
+
+# Inflow rate/pond area
+inflow_2_pond_norm <- inflow_rate_2/pond_areas
+```
+
+Finding inflow rate for storm 3: 9/25
+```{r}
+# Inflow rate
+baxter_inf_rate_3 <- get_inflow_rate(baxter_wl$Depth.ft, baxter_wl$DateTime, 39310,39660)
+commave_inf_rate_3 <- get_inflow_rate(commave_wl$Depth.ft, commave_wl$DateTime, 39540,39550)
+doba4_inf_rate_3 <- get_inflow_rate(doba4_wl$Depth.ft, doba4_wl$DateTime, 39550,39570)
+doba5_inf_rate_3 <- get_inflow_rate(doba5_wl$Depth.ft, doba5_wl$DateTime, 13350, 13360)
+doba7_inf_rate_3 <- get_inflow_rate(doba7_wl$Depth.ft, doba7_wl$DateTime, 39500,39700)
+doba8_inf_rate_3 <- get_inflow_rate(doba8_wl$Depth.ft, doba8_wl$DateTime, 39500,39700)
+doba22_inf_rate_3 <- get_inflow_rate(doba22_wl$Depth.ft, doba22_wl$DateTime, 39570,39650)
+doorcreek_inf_rate_3 <- get_inflow_rate(doorcreek_wl$Depth.ft, doorcreek_wl$DateTime, 39550,39600)
+elver_inf_rate_3 <- get_inflow_rate(elver_wl$Depth.ft, elver_wl$DateTime, 39630,39710)
+garner_inf_rate_3 <- get_inflow_rate(garner_wl$Depth.ft, garner_wl$DateTime, 39630,39710)
+greentree_inf_rate_3 <- get_inflow_rate(greentree_wl$Depth.ft, greentree_wl$DateTime, 39620,39700)
+hospital_inf_rate_3 <- get_inflow_rate(hospital_wl$Depth.ft, hospital_wl$DateTime, 39635,39695)
+hpchurch_inf_rate_3 <- get_inflow_rate(hpchurch_wl$Depth.ft, hpchurch_wl$DateTime, 39500,39620)
+lot60_inf_rate_3 <- get_inflow_rate(lot60_wl$Depth.ft, lot60_wl$DateTime, 39600,39720)
+madcity_inf_rate_3 <- get_inflow_rate(madcity_wl$Depth.ft, madcity_wl$DateTime, 39630,39695)
+manitou_inf_rate_3 <- get_inflow_rate(manitou_wl$Depth.ft, manitou_wl$DateTime, 39640,39705)
+mariondunn_inf_rate_3 <- get_inflow_rate(mariondunn_wl$Depth.ft, mariondunn_wl$DateTime, 39600,39700)
+midtown_inf_rate_3 <- get_inflow_rate(midtown_wl$Depth.ft, midtown_wl$DateTime, 13650, 13780)
+owen_inf_rate_3 <- get_inflow_rate(owen_wl$Depth.ft, owen_wl$DateTime, 39620,39720)
+twofountains_inf_rate_3 <- get_inflow_rate(twofountains_wl$Depth.ft, twofountains_wl$DateTime, 39680,39700)
+
+inflow_rate_3 <- c(hospital_inf_rate_3,lot60_inf_rate_3,garner_inf_rate_3,doba7_inf_rate_3,owen_inf_rate_3,hpchurch_inf_rate_3,doba8_inf_rate_3,midtown_inf_rate_3,elver_inf_rate_3,twofountains_inf_rate_3,greentree_inf_rate_3,mariondunn_inf_rate_3,manitou_inf_rate_3,madcity_inf_rate_3,baxter_inf_rate_3,doba22_inf_rate_3,doba5_inf_rate_3,doba4_inf_rate_3,doorcreek_inf_rate_3,commave_inf_rate_3)
+
+# Inflow rate/watershed area
+inflow_3_wat_norm <- inflow_rate_3/watershed_areas
+
+# Inflow rate/pond area
+inflow_3_pond_norm <- inflow_rate_3/pond_areas
+```
+Save variables in csv file
+```{r}
+# Pond names
+pond_names <- c("Hospital", "Lot60", "Garner", "DobA7", "Owen", "HPChurch", "DobA8", "Midtown", "Elver", "TwoFountains", "Greentree", "MarionDunn", "Manitou", "MadCity", "Baxter", "DobA22", "DobA5", "DobA4", "DoorCreek", "CommAve")
+
+pond_names_1 <- c("Hospital", "Lot60", "Garner", "DobA7", "Owen", "HPChurch", "DobA8", "Elver", "TwoFountains", "Greentree", "MarionDunn", "Manitou", "MadCity", "Baxter", "DobA22", "DobA4", "DoorCreek", "CommAve")
+
+# Create a data frame for all ponds
+inflow_rate_1_df <- data.frame(Pond.Names = pond_names_1, Inflow.Rate = inflow_rate_1, Inflow.Wat.Norm = inflow_1_wat_norm, Inflow.Pond.Norm = inflow_1_pond_norm)
+inflow_rate_2_df <- data.frame(Pond.Names = pond_names, Inflow.Rate = inflow_rate_2, Inflow.Wat.Norm = inflow_2_wat_norm, Inflow.Pond.Norm = inflow_2_pond_norm)
+inflow_rate_3_df <- data.frame(Pond.Names = pond_names, Inflow.Rate = inflow_rate_3, Inflow.Wat.Norm = inflow_3_wat_norm, Inflow.Pond.Norm = inflow_3_pond_norm)
+
+# Write csv for data frame
+write.csv(inflow_rate_1_df, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Inflow_Rate/Inflow_Rate_1.csv")
+write.csv(inflow_rate_2_df, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Inflow_Rate/Inflow_Rate_2.csv")
+write.csv(inflow_rate_3_df, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Inflow_Rate/Inflow_Rate_3.csv")
+```
