@@ -1,0 +1,1364 @@
+---
+title: "InflowOutflowCalcs"
+author: "Hannah Curtis"
+date: "2023-11-27"
+output: html_document
+---
+
+This file uses the reverse Puls routing method to calculated inflow and outflow in each pond. The outflow are calculated using common weir and pipe flow equations, and the inflows are calculated using the reverse Puls routing method. The rating curves are calculated and plotted, the slope of the rating curves are determined for the outlet restrictiveness variable, and the attenuation values for each storm are calculated. 
+
+Can find a more elegant way to calculate the volume of each pond.
+
+Can go back and write better functions for storage capacity relationships.
+
+Updated: 3/21/24
+
+Read water level data
+```{r}
+# V-notch weirs
+# Manitou
+manitou_data <- read.csv("Manitou/Manitou_Water_Level.csv")
+depth_ft_man <- manitou_data$Depth.ft
+depth_m_man <- depth_ft_man / 3.28
+datetime_man <- manitou_data$DateTime
+# Garner
+garner_data <- read.csv("Garner/Garner_Water_Level.csv")
+depth_ft_gar <- garner_data$Depth.ft
+depth_m_gar <- depth_ft_gar / 3.28
+datetime_gar <- garner_data$DateTime
+# DobA5
+doba5_data <- read.csv("DobA5/DobA5_Water_Level.csv")
+depth_ft_da5 <- doba5_data$Depth.ft
+depth_m_da5 <- depth_ft_da5 / 3.28
+datetime_da5 <- doba5_data$DateTime
+
+# Rectangular weirs
+# Midtown
+midtown_data <- read.csv("Midtown/Midtown_Water_Level.csv")
+depth_ft_mid <- midtown_data$Depth.ft
+depth_m_mid <- depth_ft_mid / 3.28
+datetime_mid <- midtown_data$DateTime
+# Baxter
+baxter_data <- read.csv("Baxter/Baxter_Water_Level.csv")
+depth_ft_bax <- baxter_data$Depth.ft
+depth_m_bax <- depth_ft_bax / 3.28
+datetime_bax <- baxter_data$DateTime
+# DobA8
+doba8_data <- read.csv("DobA8/DobA8_Water_Level.csv")
+depth_ft_da8 <- doba8_data$Depth.ft
+depth_m_da8 <- depth_ft_da8 / 3.28
+datetime_da8 <- doba8_data$DateTime
+# Elver
+elver_data <- read.csv("Elver/Elver_Water_Level.csv")
+depth_ft_elver <- elver_data$Depth.ft
+depth_m_elver <- depth_ft_elver / 3.28
+datetime_elver <- elver_data$DateTime
+# HP Church
+hpchurch_data <- read.csv("HPChurch/HPChurch_Water_Level.csv")
+depth_ft_hp <- hpchurch_data$Depth.ft
+depth_m_hp <- depth_ft_hp / 3.28
+datetime_hp <- hpchurch_data$DateTime
+
+# Other weirs
+# DobA7
+doba7_data <- read.csv("DobA7/DobA7_Water_Level.csv")
+depth_ft_da7 <- doba7_data$Depth.ft
+depth_m_da7 <- depth_ft_da7 / 3.28
+datetime_da7 <- doba7_data$DateTime
+
+# Pipes
+# Owen
+owen_data <- read.csv("Owen/Owen_Water_Level.csv")
+depth_ft_owen <- owen_data$Depth.ft
+depth_m_owen <- depth_ft_owen / 3.28
+datetime_owen <- owen_data$DateTime
+# Marion-Dunn
+mariondunn_data <- read.csv("MarionDunn/MarionDunn_Water_Level.csv")
+depth_ft_md <- mariondunn_data$Depth.ft
+depth_m_md <- depth_ft_md / 3.28
+datetime_md <- mariondunn_data$DateTime
+# Mad City
+madcity_data <- read.csv("MadCity/MadCity_Water_Level.csv")
+depth_ft_mc <- madcity_data$Depth.ft
+depth_m_mc <- depth_ft_mc / 3.28
+datetime_mc <- madcity_data$DateTime
+# DobA22
+doba22_data <- read.csv("DobA22/DobA22_Water_Level.csv")
+depth_ft_da22 <- doba22_data$Depth.ft
+depth_m_da22 <- depth_ft_da22 / 3.28
+datetime_da22 <- doba22_data$DateTime
+# DobA4
+doba4_data <- read.csv("DobA4/DobA4_Water_Level.csv")
+depth_ft_da4 <- doba4_data$Depth.ft
+depth_m_da4 <- depth_ft_da4 / 3.28
+datetime_da4 <- doba4_data$DateTime
+# Door Creek
+doorcreek_data <- read.csv("DoorCreek/DoorCreek_Water_Level.csv")
+depth_ft_dc <- doorcreek_data$Depth.ft
+depth_m_dc <- depth_ft_dc / 3.28
+datetime_dc <- doorcreek_data$DateTime
+# Commercial Ave
+commave_data <- read.csv("CommAve/CommAve_Water_Level.csv")
+depth_ft_ca <- commave_data$Depth.ft
+depth_m_ca <- depth_ft_ca / 3.28
+datetime_ca <- commave_data$DateTime
+# Hospital
+hospital_data <- read.csv("Hospital/Hospital_Water_Level.csv")
+depth_ft_hos <- hospital_data$Depth.ft
+depth_m_hos <- depth_ft_hos / 3.28
+datetime_hos <- hospital_data$DateTime
+# Lot 60
+lot60_data <- read.csv("Lot60/Lot60_Water_Level.csv")
+depth_ft_l60 <- lot60_data$Depth.ft
+depth_m_l60 <- depth_ft_l60 / 3.28
+datetime_l60 <- lot60_data$DateTime
+# Two Fountains
+twofountains_data <- read.csv("TwoFountains/TwoFountains_Water_Level.csv")
+depth_ft_tf <- twofountains_data$Depth.ft
+depth_m_tf <- depth_ft_tf / 3.28
+datetime_tf <- twofountains_data$DateTime
+
+# Other
+# Greentree
+greentree_data <- read.csv("Greentree/Greentree_Water_Level.csv")
+depth_ft_gt <- greentree_data$Depth.ft
+depth_m_gt <- depth_ft_gt / 3.28
+datetime_gt <- greentree_data$DateTime
+
+# time
+time_min <- manitou_data$Time.min
+time_sec <- manitou_data$Time.sec
+
+# File to get pond names
+pond_names <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Master_Variables.csv")
+```
+
+Moving average to smooth elevation
+```{r}
+# smoothing function (can change weights)
+smooth_elevation <- function(elevation, weights=c(1/3,1/3,1/3)) {
+  
+  moving_avg_elevation <- rep(0,length(weights))
+  for (i in 1:length(weights)) {
+    j <- length(elevation) - (length(weights) - i)
+    moving_avg_elevation <- moving_avg_elevation + weights[i]*elevation[i:j]
+  }
+  return(moving_avg_elevation)
+}
+
+# Apply to each pond
+
+# Manitou
+elevation_ft_man = smooth_elevation(depth_ft_man)
+elevation_m_man = smooth_elevation(depth_m_man)
+# Garner
+elevation_ft_gar = smooth_elevation(depth_ft_gar)
+elevation_m_gar = smooth_elevation(depth_m_gar)
+# DobA5
+elevation_ft_da5 = smooth_elevation(depth_ft_da5)
+elevation_m_da5 = smooth_elevation(depth_m_da5)
+# Midtown
+elevation_ft_mid = smooth_elevation(depth_ft_mid)
+elevation_m_mid = smooth_elevation(depth_m_mid)
+# Baxter
+elevation_ft_bax = smooth_elevation(depth_ft_bax)
+elevation_m_bax = smooth_elevation(depth_m_bax)
+# DobA7
+elevation_ft_da7 = smooth_elevation(depth_ft_da7)
+elevation_m_da7 = smooth_elevation(depth_m_da7)
+# Owen
+elevation_ft_owen = smooth_elevation(depth_ft_owen)
+elevation_m_owen = smooth_elevation(depth_m_owen)
+# Marion-Dunn
+elevation_ft_md = smooth_elevation(depth_ft_md)
+elevation_m_md = smooth_elevation(depth_m_md)
+# Mad City
+elevation_ft_mc = smooth_elevation(depth_ft_mc)
+elevation_m_mc = smooth_elevation(depth_m_mc)
+# DobA22
+elevation_ft_da22 = smooth_elevation(depth_ft_da22)
+elevation_m_da22 = smooth_elevation(depth_m_da22)
+# DobA4
+elevation_ft_da4 = smooth_elevation(depth_ft_da4)
+elevation_m_da4 = smooth_elevation(depth_m_da4)
+# Door Creek
+elevation_ft_dc = smooth_elevation(depth_ft_dc)
+elevation_m_dc = smooth_elevation(depth_m_dc)
+# Commercial Ave
+elevation_ft_ca = smooth_elevation(depth_ft_ca)
+elevation_m_ca = smooth_elevation(depth_m_ca)
+# DobA8
+elevation_ft_da8 = smooth_elevation(depth_ft_da8)
+elevation_m_da8 = smooth_elevation(depth_m_da8)
+# Elver
+elevation_ft_elver = smooth_elevation(depth_ft_elver)
+elevation_m_elver = smooth_elevation(depth_m_elver)
+# Greentree
+elevation_ft_gt = smooth_elevation(depth_ft_gt)
+elevation_m_gt = smooth_elevation(depth_m_gt)
+# Hospital
+elevation_ft_hos = smooth_elevation(depth_ft_hos)
+elevation_m_hos = smooth_elevation(depth_m_hos)
+# HP Church
+elevation_ft_hp = smooth_elevation(depth_ft_hp)
+elevation_m_hp = smooth_elevation(depth_m_hp)
+# Lot 60
+elevation_ft_l60 = smooth_elevation(depth_ft_l60)
+elevation_m_l60 = smooth_elevation(depth_m_l60)
+# Two Fountains
+elevation_ft_tf = smooth_elevation(depth_ft_tf)
+elevation_m_tf = smooth_elevation(depth_m_tf)
+
+```
+
+Elevation and storage capacity relationships:
+```{r}
+# elevation values from 0 to 7 ft by 0.1 ft increments
+elevation_relationship_ft <- matrix(c(seq(70)*0.1))
+
+# elevation and storage capacity
+# volume of pond is just length*width*height
+calc_pond_volume <- function(elevation, L_basin, W_basin) {
+  return(elevation * L_basin * W_basin)
+}
+
+# elevation storage relationships for each pond
+elevation_storage_man <- calc_pond_volume(elevation_relationship_ft, 270, 360)
+elevation_storage_gar <- calc_pond_volume(elevation_relationship_ft, 320, 145)
+elevation_storage_da5 <- calc_pond_volume(elevation_relationship_ft, 313, 146)
+elevation_storage_mid <- calc_pond_volume(elevation_relationship_ft, 510, 143)
+elevation_storage_bax <- calc_pond_volume(elevation_relationship_ft, 60, 100)
+elevation_storage_da7 <- calc_pond_volume(elevation_relationship_ft, 445, 253)
+elevation_storage_owen <- calc_pond_volume(elevation_relationship_ft, 222, 144)
+elevation_storage_md <- calc_pond_volume(elevation_relationship_ft, 320, 262)
+elevation_storage_mc <- calc_pond_volume(elevation_relationship_ft, 140, 219)
+elevation_storage_da22 <- calc_pond_volume(elevation_relationship_ft, 318, 46)
+elevation_storage_da4 <- calc_pond_volume(elevation_relationship_ft, 572, 134)
+elevation_storage_dc <- calc_pond_volume(elevation_relationship_ft, 605, 148)
+elevation_storage_ca <- calc_pond_volume(elevation_relationship_ft, 262, 153)
+elevation_storage_da8 <- calc_pond_volume(elevation_relationship_ft, 242, 170)
+elevation_storage_elver <- calc_pond_volume(elevation_relationship_ft, 363, 164)
+elevation_storage_gt <- calc_pond_volume(elevation_relationship_ft, 327, 300)
+elevation_storage_hos <- calc_pond_volume(elevation_relationship_ft, 215, 294)
+elevation_storage_hp <- calc_pond_volume(elevation_relationship_ft, 615, 365)
+elevation_storage_l60 <- calc_pond_volume(elevation_relationship_ft, 712, 148)
+elevation_storage_tf <- calc_pond_volume(elevation_relationship_ft, 235, 302)
+
+```
+
+Storage Capacity Calculations:
+```{r}
+# Manitou
+# storage capacity 2
+storage_2_man <- calc_pond_volume(elevation_ft_man, 270, 360)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_man <- storage_2_man[1:length(storage_2_man)-1]
+storage_2_man <- storage_2_man[2:length(storage_2_man)]
+
+# Garner
+storage_2_gar <- calc_pond_volume(elevation_ft_gar, 320, 145)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_gar <- storage_2_gar[1:length(storage_2_gar)-1]
+storage_2_gar <- storage_2_gar[2:length(storage_2_gar)]
+
+# DobA5
+storage_2_da5 <- calc_pond_volume(elevation_ft_da5, 313, 146)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_da5 <- storage_2_da5[1:length(storage_2_da5)-1]
+storage_2_da5 <- storage_2_da5[2:length(storage_2_da5)]
+
+# Midtown
+storage_2_mid <- calc_pond_volume(elevation_ft_mid, 510, 143)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_mid <- storage_2_mid[1:length(storage_2_mid)-1]
+storage_2_mid <- storage_2_mid[2:length(storage_2_mid)]
+
+# Baxter
+storage_2_bax <- calc_pond_volume(elevation_ft_bax, 60, 100)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_bax <- storage_2_bax[1:length(storage_2_bax)-1]
+storage_2_bax <- storage_2_bax[2:length(storage_2_bax)]
+
+# DobA7
+storage_2_da7 <- calc_pond_volume(elevation_ft_da7, 445, 253)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_da7 <- storage_2_da7[1:length(storage_2_da7)-1]
+storage_2_da7 <- storage_2_da7[2:length(storage_2_da7)]
+
+# Owen
+storage_2_owen <- calc_pond_volume(elevation_ft_owen, 222, 144)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_owen <- storage_2_owen[1:length(storage_2_owen)-1]
+storage_2_owen <- storage_2_owen[2:length(storage_2_owen)]
+
+# Marion-Dunn
+storage_2_md <- calc_pond_volume(elevation_ft_md, 320, 262)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_md <- storage_2_md[1:length(storage_2_md)-1]
+storage_2_md <- storage_2_md[2:length(storage_2_md)]
+
+# Mad City
+storage_2_mc <- calc_pond_volume(elevation_ft_mc, 140, 219)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_mc <- storage_2_mc[1:length(storage_2_mc)-1]
+storage_2_mc <- storage_2_mc[2:length(storage_2_mc)]
+
+# DobA22
+storage_2_da22 <- calc_pond_volume(elevation_ft_da22, 318, 46)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_da22 <- storage_2_da22[1:length(storage_2_da22)-1]
+storage_2_da22 <- storage_2_da22[2:length(storage_2_da22)]
+
+# DobA4
+storage_2_da4 <- calc_pond_volume(elevation_ft_da4, 313, 146)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_da4 <- storage_2_da4[1:length(storage_2_da4)-1]
+storage_2_da4 <- storage_2_da4[2:length(storage_2_da4)]
+
+# Door Creek
+storage_2_dc <- calc_pond_volume(elevation_ft_dc, 605, 148)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_dc <- storage_2_dc[1:length(storage_2_dc)-1]
+storage_2_dc <- storage_2_dc[2:length(storage_2_dc)]
+
+# Commercial Ave
+storage_2_ca <- calc_pond_volume(elevation_ft_ca, 262, 153)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_ca <- storage_2_ca[1:length(storage_2_ca)-1]
+storage_2_ca <- storage_2_ca[2:length(storage_2_ca)]
+
+# DobA8
+storage_2_da8 <- calc_pond_volume(elevation_ft_da8, 242, 170)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_da8 <- storage_2_da8[1:length(storage_2_da8)-1]
+storage_2_da8 <- storage_2_da8[2:length(storage_2_da8)]
+
+# Elver
+storage_2_elver <- calc_pond_volume(elevation_ft_elver, 363, 164)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_elver <- storage_2_elver[1:length(storage_2_elver)-1]
+storage_2_elver <- storage_2_elver[2:length(storage_2_elver)]
+
+# Greentree
+storage_2_gt <- calc_pond_volume(elevation_ft_gt, 327, 300)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_gt <- storage_2_gt[1:length(storage_2_gt)-1]
+storage_2_gt <- storage_2_gt[2:length(storage_2_gt)]
+
+# Hospital
+storage_2_hos <- calc_pond_volume(elevation_ft_hos, 215, 294)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_hos <- storage_2_hos[1:length(storage_2_hos)-1]
+storage_2_hos <- storage_2_hos[2:length(storage_2_hos)]
+
+# HP Church
+storage_2_hp <- calc_pond_volume(elevation_ft_hp, 615, 365)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_hp <- storage_2_hp[1:length(storage_2_hp)-1]
+storage_2_hp <- storage_2_hp[2:length(storage_2_hp)]
+
+# Lot 60
+storage_2_l60 <- calc_pond_volume(elevation_ft_l60, 712, 148)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_l60 <- storage_2_l60[1:length(storage_2_l60)-1]
+storage_2_l60 <- storage_2_l60[2:length(storage_2_l60)]
+
+# Two Fountains
+storage_2_tf <- calc_pond_volume(elevation_ft_tf, 235, 302)
+# line up values so storage 1 is the previous storage 2 (and they have the same length)
+storage_1_tf <- storage_2_tf[1:length(storage_2_tf)-1]
+storage_2_tf <- storage_2_tf[2:length(storage_2_tf)]
+```
+
+Elevation and outflow relationships:
+```{r}
+# Calculate outflows using weir/pipe flow equations
+
+
+# V-notch weir function
+# H_0 is from the sensor to the bottom of the weir
+# h_k is a weir parameter
+# C_d is weir coefficient
+# theta is the weir angle
+calc_outflow_vweir <- function(elevation, H_0, h_k, C_d, theta) {
+  outflow <- (8/15)*C_d*sqrt(2*32.2)*tan(theta/2)*(((na.omit(elevation)-H_0)+h_k)^(5/2))
+  for (i in 1:length(na.omit(elevation))) {
+   if (na.omit(elevation)[i] < H_0) {
+    outflow[i] <- 0 
+   } 
+  }
+  return(outflow)
+}
+
+
+# Rectangular weir function
+# H_0 is from the sensor to the bottom of the weir
+# L_w is the length of the weir
+# L_k is weir parameter
+# C_d is a weir coefficient
+calc_outflow_rweir <- function(elevation, H_0, L_w, L_k, C_d) {
+  outflow <- (3/2)*C_d*sqrt(2*32.2)*(L_w+L_k)*(((elevation-H_0)+0.00328)^(3/2))
+  for (i in 1:length(elevation)) {
+   if (elevation[i] < H_0) {
+    outflow[i] <- 0 
+   } 
+  }
+  return(outflow)
+}
+
+# Trapezoidal weir function
+# H_0 is from the sensor to the bottom of the weir
+# L_w is the length of the weir (bottom)
+# C_d is the weir coefficient
+calc_outflow_tweir <- function(elevation, H_0, L_w, C_d) {
+  outflow <- C_d*sqrt(2*32.2)*L_w*((elevation-H_0)^(3/2))
+  for (i in 1:length(elevation)) {
+   if (elevation[i] < H_0) {
+    outflow[i] <- 0 
+   } 
+  }
+  return(outflow)
+}
+
+# Pipe (orifice) function
+# Equations 10-12 and 10-13 from Open Channel Flow textbook
+# H_0 is from the sensor to the bottom of the pipe
+# H_t is from the sensor to the top of the pipe
+# B is the width of the pipe
+calc_outflow_pipe <- function(elevation, H_0, H_t, B) {
+  outflow <- elevation
+  for (i in 1:length(elevation)) {
+    if (elevation[i] < H_0) {
+      outflow[i] <- 0 
+    } else if (elevation[i] < 1.2*H_t) {
+      outflow[i] <- (2/3)*B*(elevation[i]-H_0)*sqrt((2/3)*32.2*(elevation[i]-H_0))
+    } else {
+      outflow[i] <- 0.8*B*(H_t-H_0)*sqrt(2*32.2*((elevation[i]-H_0)-(0.8*(H_t-H_0))))
+   }
+  }
+  return(outflow)
+}
+
+# Pipe function
+# Use Manning's equation for partially full pipe
+# Use Hazen-Williams for pipe flow 
+calc_outflow_pipe_2 <- function(elevation, H_0, slope, D) {
+  outflow <- elevation
+  for (i in 1:length(elevation)) {
+    # theta_pipe <- (2*acos(((D/2)-(D-(elevation[i]-H_0)))/(D/2))) # radians
+    # area_open <- (pi*((D/2)^2))-(((D/2)^2*(theta_pipe-sin(theta_pipe)))/2)
+    # hydraulic_radius_open <- area_open/((2*pi*(D/2))-((D/2)*theta_pipe))
+    # area_full <- pi*((D/2)^2)
+    # hydraulic_radius_full <- area_full/((2*pi*(D/2))-((D/2)))
+    if (elevation[i] < H_0) {
+    outflow[i] <- 0
+  } else if (elevation[i] < (H_0 + D)) {
+    theta_pipe <- (2*acos(((D/2)-(D-(elevation[i]-H_0)))/(D/2))) # radians
+    area_open <- (pi*((D/2)^2))-(((D/2)^2*(theta_pipe-sin(theta_pipe)))/2)
+    hydraulic_radius_open <- area_open/((2*pi*(D/2))-((D/2)*theta_pipe))
+    outflow[i] <- (1.49/0.012)*area_open*(hydraulic_radius_open^(2/3))*((slope/100)^(1/2))
+  } else {
+    area_full <- pi*((D/2)^2)
+    hydraulic_radius_full <- area_full/((2*pi*(D/2))-((D/2)))
+    outflow[i] <- area_full*1.318*120*(hydraulic_radius_full^0.63)*((slope/100)^0.54)
+  }
+ }
+ return(outflow) 
+}
+
+# elevation outflow relationships
+elevation_outflow_man <- na.omit(calc_outflow_vweir(elevation_relationship_ft, 8/12, (0.8/25.4)/12, 0.5775, (120*pi)/180))
+elevation_outflow_gar <- na.omit(calc_outflow_vweir(elevation_relationship_ft, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180)))
+elevation_outflow_da5 <- na.omit(calc_outflow_vweir(elevation_relationship_ft, 15.5/12, (2.2/25.4)/12, 0.585, (30*pi)/180))
+elevation_outflow_mid <- na.omit(calc_outflow_rweir(elevation_relationship_ft, 27.25/12, 10, 0.00984, 0.61))
+elevation_outflow_bax <- na.omit(calc_outflow_rweir(elevation_relationship_ft, 11/12, 2.25, 0.012136, 0.62))
+elevation_outflow_da8 <- na.omit(calc_outflow_rweir(elevation_relationship_ft, 42/12, 7.5, 0.00984, 0.6))
+elevation_outflow_elver <- na.omit(calc_outflow_rweir(elevation_relationship_ft, 20.5/12, 14, 0.01066, 0.6))
+elevation_outflow_hp <- na.omit(calc_outflow_rweir(elevation_relationship_ft, 19/12, 20, 0.01476, 0.62))
+elevation_outflow_da7 <- na.omit(calc_outflow_tweir(elevation_relationship_ft, 12/12, 15, 0.42))
+elevation_outflow_owen <- na.omit(calc_outflow_pipe(elevation_relationship_ft, 2.5, 5.5, 4))
+elevation_outflow_md <- na.omit(calc_outflow_pipe(elevation_relationship_ft, 6.5/12, 3.4167, 4.4167))
+elevation_outflow_mc <- na.omit(calc_outflow_pipe(elevation_relationship_ft, 10/12, 3.25, 3.75))
+elevation_outflow_da22 <- na.omit(calc_outflow_pipe(elevation_relationship_ft, 2, 4, 3.17))
+elevation_outflow_da4 <- na.omit(calc_outflow_pipe(elevation_relationship_ft, 14.5/12, 3.7083, 2.5))
+elevation_outflow_dc <- na.omit(calc_outflow_pipe(elevation_relationship_ft, 17/12, 65/12, 4))
+elevation_outflow_ca <- na.omit(calc_outflow_pipe(elevation_relationship_ft, 14.5/12, 6.2083, 65/12))
+elevation_outflow_hos <- na.omit(calc_outflow_pipe(elevation_relationship_ft, 18/12, 4.5, 3))
+elevation_outflow_l60 <- na.omit(calc_outflow_pipe(elevation_relationship_ft, 3.5/12, 2.2917, 2))
+elevation_outflow_tf <- na.omit(calc_outflow_pipe(elevation_relationship_ft, 16.5/12, 3.33333, 2))
+elevation_outflow_gt <- na.omit(calc_outflow_pipe(elevation_relationship_ft, 14.5/12, 9.2083, 12))
+# Using new pipe equations
+elevation_outflow_owen_2 <- calc_outflow_pipe_2(elevation_relationship_ft, 2.5, 4.55, 4)
+elevation_outflow_md_2 <- na.omit(calc_outflow_pipe_2(elevation_relationship_ft, 6.5/12, 1, 4.4167))
+elevation_outflow_mc_2 <- na.omit(calc_outflow_pipe_2(elevation_relationship_ft, 10/12, 1, 3.75))
+elevation_outflow_da22_2 <- calc_outflow_pipe_2(elevation_relationship_ft, 2, 2.29, 3.17)
+elevation_outflow_da4_2 <- na.omit(calc_outflow_pipe_2(elevation_relationship_ft, 14.5/12, 1, 2.5))
+elevation_outflow_dc_2 <- na.omit(calc_outflow_pipe_2(elevation_relationship_ft, 17/12, 1.39, 4))
+elevation_outflow_ca_2 <- na.omit(calc_outflow_pipe_2(elevation_relationship_ft, 14.5/12, 2, 65/12))
+elevation_outflow_hos_2 <- calc_outflow_pipe_2(elevation_relationship_ft, 18/12, 7.175, 3)
+elevation_outflow_l60_2 <- na.omit(calc_outflow_pipe_2(elevation_relationship_ft, 3.5/12, 1.07, 2))
+elevation_outflow_tf_2 <- na.omit(calc_outflow_pipe_2(elevation_relationship_ft, 16.5/12, 1, 2))
+elevation_outflow_gt_2 <- na.omit(calc_outflow_pipe_2(elevation_relationship_ft, 14.5/12, 1, 12))
+
+```
+
+Rating Curves:
+```{r}
+# Plots elevation vs calculated outflow at each pond (scaled by number of outlets)
+plot(elevation_relationship_ft, elevation_outflow_man)
+plot(elevation_relationship_ft, elevation_outflow_gar)
+plot(elevation_relationship_ft, elevation_outflow_da5)
+plot(elevation_relationship_ft, elevation_outflow_mid)
+plot(elevation_relationship_ft, elevation_outflow_bax)
+plot(elevation_relationship_ft, elevation_outflow_da7)
+plot(elevation_relationship_ft, elevation_outflow_owen)
+plot(elevation_relationship_ft, 2*elevation_outflow_md)
+plot(elevation_relationship_ft, 2*elevation_outflow_mc)
+plot(elevation_relationship_ft, 5*elevation_outflow_da22)
+plot(elevation_relationship_ft, 4*elevation_outflow_da4)
+plot(elevation_relationship_ft, elevation_outflow_dc)
+plot(elevation_relationship_ft, elevation_outflow_ca)
+plot(elevation_relationship_ft, elevation_outflow_da8)
+plot(elevation_relationship_ft, elevation_outflow_elver)
+plot(elevation_relationship_ft, elevation_outflow_hp)
+plot(elevation_relationship_ft, 5*elevation_outflow_hos)
+plot(elevation_relationship_ft, elevation_outflow_l60)
+plot(elevation_relationship_ft, elevation_outflow_tf)
+plot(elevation_relationship_ft, elevation_outflow_gt)
+# with new pipe equations
+plot(elevation_relationship_ft, elevation_outflow_owen_2)
+plot(elevation_relationship_ft, 2*elevation_outflow_md_2)
+plot(elevation_relationship_ft, 2*elevation_outflow_mc_2)
+plot(elevation_relationship_ft, 5*elevation_outflow_da22_2)
+plot(elevation_relationship_ft, 4*elevation_outflow_da4_2)
+plot(elevation_relationship_ft, elevation_outflow_dc_2)
+plot(elevation_relationship_ft, elevation_outflow_ca_2)
+plot(elevation_relationship_ft, 5*elevation_outflow_hos_2)
+plot(elevation_relationship_ft, elevation_outflow_l60_2)
+plot(elevation_relationship_ft, elevation_outflow_tf_2)
+plot(elevation_relationship_ft, elevation_outflow_gt_2)
+
+```
+
+These are the ones that actually work
+```{r}
+# V-notch weir function
+# H_0 is from the sensor to the bottom of the weir
+# H_1 is from the sensor to the bottom of the standpipe
+# H_2 is from the sensor to h_t where standpipe starts behaving like an orifice
+# H_3 is from the sensor to the bottom of the broad-crested weir
+# h_k is a weir parameter
+# C_d is v-notch weir coefficient
+# C_w is broad-crested weir coefficient
+# C is orifice coefficient
+# theta is the weir angle
+# D is the diameter of the standpipe
+# L is the effective weir length for the broad-crested weir
+calc_outflow_vweir_3 <- function(elevation, H_0, H_1, H_2, h_k, C_d, C_a, theta, D) {
+  outflow <- elevation
+  for (i in 1:length(elevation)) {
+   if (elevation[i] < H_0) {
+    outflow[i] <- 0
+   } else if (elevation[i] < H_1) {
+      outflow[i] <- (8/15)*C_d*sqrt(2*32.2)*tan(theta/2)*(((na.omit(elevation[i])-H_0)+h_k)^(5/2)) # v-notch weir
+   } else if (elevation[i] < H_2) {
+      outflow[i] <- (8/15)*C_d*sqrt(2*32.2)*tan(theta/2)*(((na.omit(elevation[i])-H_0)+h_k)^(5/2)) +          
+      C_a*pi*D*((2*32.2*(elevation[i] - H_1))^(3/2)) # v-notch weir and standpipe (weir equation)
+   }
+  }
+  return(outflow)
+}
+
+# For DobA7 specifically
+# Trapezoidal weir function
+# H_0 is from the sensor to the bottom of the weir
+# L_w is the length of the weir (bottom)
+# C_d is the weir coefficient
+calc_outflow_tweir_2 <- function(elevation, H_0, L_w, C_d, C_a, D, H_1) {
+  outflow <- elevation
+  for (i in 1:length(elevation)) {
+   if (elevation[i] < H_0) {
+    outflow[i] <- C_a*pi*D*((2*32.2*(elevation[i]))^(3/2))
+   } else  {
+     outflow[i] <- C_d*sqrt(2*32.2)*L_w*((elevation[i]-H_0)^(3/2)) + C_a*pi*D*((2*32.2*(1))^(3/2))
+   } 
+  }
+  return(outflow)
+}
+
+# For Manitou pond specifically
+# V-notch weir + rectangular weir
+calc_outflow_manitou <- function(elevation, H_0, H_1, h_k, C_d, theta, L_w, L_k) {
+  outflow <- elevation
+  for (i in 1:length(elevation)) {
+   if (elevation[i] < H_0) {
+    outflow[i] <- 0
+   } else if (elevation[i] < H_1) {
+      outflow[i] <- (8/15)*C_d*sqrt(2*32.2)*tan(theta/2)*(((na.omit(elevation[i])-H_0)+h_k)^(5/2)) # v-notch weir
+   } else {
+      outflow[i] <- (8/15)*C_d*sqrt(2*32.2)*tan(theta/2)*((H_1+h_k)^(5/2)) +          
+      (3/2)*C_d*sqrt(2*32.2)*(L_w+L_k)*(((elevation[i]-H_1)+0.00328)^(3/2)) # v-notch weir (at H_1) and rectangular weir
+   }
+  }
+  return(outflow)
+}
+
+# For Baxter pond specifically
+calc_outflow_baxter <- function(elevation, H_0, H_1, H_2, slope, D, L_w, L_k, C_d, C_c, L) {
+  outflow <- elevation
+  for (i in 1:length(elevation)) {
+   if (elevation[i] < H_0) {
+    outflow[i] <- 0
+   } else if (elevation[i] < H_0 + D) {
+     theta_pipe <- (2*acos(((D/2)-(D-(elevation[i]-H_0)))/(D/2))) # radians
+     area_open <- (pi*((D/2)^2))-(((D/2)^2*(theta_pipe-sin(theta_pipe)))/2)
+     hydraulic_radius_open <- area_open/((2*pi*(D/2))-((D/2)*theta_pipe))
+     outflow[i] <- (1.49/0.012)*area_open*(hydraulic_radius_open^(2/3))*((slope/100)^(1/2))
+   } else if (elevation[i] < H_1) {
+     area_full <- pi*((D/2)^2)
+     hydraulic_radius_full <- area_full/((2*pi*(D/2))-((D/2)))
+     outflow[i] <- area_full*1.318*120*(hydraulic_radius_full^0.63)*((slope/100)^0.54)
+   } else if (elevation[i] < H_2) {
+     area_full <- pi*((D/2)^2)
+     hydraulic_radius_full <- area_full/((2*pi*(D/2))-((D/2)))
+     outflow[i] <- area_full*1.318*120*(hydraulic_radius_full^0.63)*((slope/100)^0.54) +     (3/2)*C_d*sqrt(2*32.2)*(L_w+L_k)*(((elevation[i]-H_1)+0.00328)^(3/2))
+   } else {
+     area_full <- pi*((D/2)^2)
+     hydraulic_radius_full <- area_full/((2*pi*(D/2))-((D/2)))
+     outflow[i] <- area_full*1.318*120*(hydraulic_radius_full^0.63)*((slope/100)^0.54) +     (3/2)*C_d*sqrt(2*32.2)*(L_w+L_k)*(((elevation[i]-H_1)+0.00328)^(3/2)) + C_c*L*((2*32.2*(elevation[i]-H_2))^(3/2))
+   }
+  }
+  return(outflow)
+}
+
+# For Commercial Ave pond specifically
+# Rectangular weir function
+# H_0 is from the sensor to the bottom of the weir
+# L_w is the length of the weir
+# L_k is weir parameter
+# C_d is a weir coefficient
+calc_outflow_commave <- function(elevation, H_0, L_w, L_k, C_d) {
+  outflow <- (3/2)*C_d*sqrt(2*32.2)*(L_w+L_k)*(((elevation-H_0)+0.00328)^(3/2))
+  for (i in 1:length(elevation)) {
+   if (elevation[i] < H_0) {
+    outflow[i] <- 0 
+   } 
+  }
+  return(outflow)
+}
+
+# For Owen pond specifically
+# Rectangular weir at 12 ft, orifice at 13 ft
+calc_outflow_owen <- function(elevation, H_0, H_1, L_w, L_k, C_d, slope, D) {
+  outflow <- elevation
+  for (i in 1:length(elevation)) {
+   if (elevation[i] < H_0) {
+    outflow[i] <- 0
+   } else if (elevation[i] < H_1) {
+     outflow[i] <- (3/2)*C_d*sqrt(2*32.2)*(L_w+L_k)*(((elevation[i]-H_0)+0.00328)^(3/2))
+   } else {
+     theta_pipe <- (2*acos(((D/2)-(D-(elevation[i]-H_0)))/(D/2))) # radians
+     area_open <- (pi*((D/2)^2))-(((D/2)^2*(theta_pipe-sin(theta_pipe)))/2)
+     hydraulic_radius_open <- area_open/((2*pi*(D/2))-((D/2)*theta_pipe))
+     outflow[i] <- (3/2)*C_d*sqrt(2*32.2)*(L_w+L_k)*(((elevation[i]-H_0)+0.00328)^(3/2)) + (1.49/0.012)*area_open*(hydraulic_radius_open^(2/3))*((slope/100)^(1/2))
+   }
+  } 
+  return(outflow)
+}
+
+
+doba7_rating_curve <- calc_outflow_tweir_2(elevation_relationship_ft, 1, 15, 0.4, 0.007, 3.28, 2.17)
+gar_rating_curve <- calc_outflow_vweir_3(elevation_relationship_ft, 1.167, 4.1, 5.2, 0.09, 0.55, 0.007, ((20*pi)/180), 5.46)
+doba5_rating_curve <- calc_outflow_vweir_3(elevation_relationship_ft, 1.292, 7.54, 0.007, 0.005, 2.64, ((30*pi)/180), 4.37)
+manitou_rating_curve <- calc_outflow_manitou(elevation_relationship_ft, 8/12, 44/12, (0.8/25.4)/12, 0.5775, ((120*pi)/180), 8, 0.01)
+baxter_rating_curve <- calc_outflow_baxter(elevation_relationship_ft, 11/12, 35/12, 44/12, 3.1, 1.2, 2.25, 0.012136, 0.62, 0.5, 150)
+commave_rating_curve <- calc_outflow_commave(elevation_relationship_ft, 14.5/12, 1.3, 0.0025, 0.22)
+owen_rating_curve <- calc_outflow_owen(elevation_relationship_ft[1:62], 2.5, 3.6, 6, 0.01, 0.3, 0.1, 3.78) # Getting NAs produced from 63 on
+```
+
+Modeled Rating Curves
+```{r}
+model_rc <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Attenuation/Model_Rating_Curves.csv")
+
+# DobA5
+plot(model_rc$DobA5.Corrected.Stage, model_rc$DobA5.Outflow, type = "l", lwd = 3, col = "red", xlim = c(0,3.5))
+lines(elevation_relationship_ft, elevation_outflow_da5, type = "l", lwd = 3, col = "blue")
+
+# Garner
+plot(model_rc$Garner.Corrected.Stage, model_rc$Garner.Outflow, type = "l", lwd = 3, col = "red", xlim = c(0,4.6))
+lines(elevation_relationship_ft, gar_rating_curve, type = "l", lwd = 3, col = "blue")
+
+# DobA7 
+plot(model_rc$DobA7.Corrected.Stage, model_rc$DobA7.Outflow, type = "l", lwd = 3, col = "red", xlim = c(0,3.8))
+lines(elevation_relationship_ft, doba7_rating_curve, type = "l", lwd = 3, col = "blue")
+
+# Marion-Dunn
+plot(model_rc$MarionDunn.Corrected.Stage.2, model_rc$MarionDunn.Outflow, type = "l", lwd = 3, col = "red", xlim = c(0,6.3))
+lines(elevation_relationship_ft, elevation_outflow_md_2, type = "l", lwd = 3, col = "blue")
+
+# Mad City
+plot(model_rc$MadCity.Corrected.Stage.2, model_rc$MadCity.Outflow.2, type = "l", lwd = 3, col = "red", xlim = c(0,5.3))
+lines(elevation_relationship_ft, elevation_outflow_mc_2, type = "l", lwd = 3, col = "blue")
+
+# Manitou
+plot(elevation_relationship_ft, manitou_rating_curve, type = "l", lwd = 3, col = "blue", xlim = c(0, 5.2))
+
+# Baxter
+plot(model_rc$Baxter.Corrected.Stage.2, model_rc$Baxter.Outflow, type = "l", lwd = 3, col = "red", xlim = c(0, 3.1))
+lines(elevation_relationship_ft, baxter_rating_curve, type = "l", lwd = 3, col = "blue")
+
+# Owen
+plot(model_rc$Owen.Corrected.Stage, model_rc$Owen.Outflow, type = "l", lwd = 3, col = "red", xlim = c(0, 5.9))
+lines(elevation_relationship_ft[1:62], owen_rating_curve, type = "l", lwd = 3, col = "blue")
+
+# Commercial Ave 
+plot(model_rc$CommAve.Corrected.Stage, model_rc$CommAve.Outflow, type = "l", lwd = 3, col = "red", xlim = c(0, 4.5))
+lines(elevation_relationship_ft, commave_rating_curve, type = "l", lwd = 3, col = "blue")
+
+```
+
+Save modeled rating curves as data frames
+```{r}
+# DobA5
+doba5_model_rc <- data.frame(stage = na.omit(model_rc$DobA5.Corrected.Stage), outflow = na.omit(model_rc$DobA5.Outflow))
+# Garner
+garner_model_rc <- data.frame(stage = na.omit(model_rc$Garner.Corrected.Stage), outflow = na.omit(model_rc$Garner.Outflow))
+# DobA7
+doba7_model_rc <- data.frame(stage = na.omit(model_rc$DobA7.Corrected.Stage), outflow = na.omit(model_rc$DobA7.Outflow))
+# Marion-Dunn
+mariondunn_model_rc <- data.frame(stage = na.omit(model_rc$MarionDunn.Corrected.Stage.2), outflow = na.omit(model_rc$MarionDunn.Outflow))
+# Mad City
+madcity_model_rc <- data.frame(stage = na.omit(model_rc$MadCity.Corrected.Stage.2.2), outflow = na.omit(model_rc$MadCity.Outflow.2))
+# Baxter
+baxter_model_rc <- data.frame(stage = na.omit(model_rc$Baxter.Corrected.Stage.2), outflow = na.omit(model_rc$Baxter.Outflow))
+# Owen 
+owen_model_rc <- data.frame(stage = na.omit(model_rc$Owen.Corrected.Stage), outflow = na.omit(model_rc$Owen.Outflow))
+# Commercial Ave
+commave_model_rc <- data.frame(stage = na.omit(model_rc$CommAve.Corrected.Stage), outflow = na.omit(model_rc$CommAve.Outflow))
+```
+
+Set up function to get outflow values by linearly interpolating from the modeled rating curve
+```{r}
+modeled_outflow <- function(elevation, rating_curve) {
+  modeled_outflow <- numeric(length(elevation))  # Initialize modeled_outflow vector
+  
+  for (i in seq_along(elevation)) {
+    x <- elevation[i]
+    # Extract x and y values from the rating_curve data frame
+    stages <- rating_curve$stage
+    outflows <- rating_curve$outflow
+    
+    # Find the indices of the two nearest points for interpolation
+    idx <- findInterval(x, stages)
+    
+    # Get the x and y values of the two nearest points
+    x1 <- stages[max(1, idx)]
+    x2 <- stages[min(length(stages), idx + 1)]
+    y1 <- outflows[max(1, idx)]
+    y2 <- outflows[min(length(outflows), idx + 1)]
+    
+    # Perform linear interpolation
+    modeled_outflow[i] <- ((y2 - y1) / (x2 - x1)) * (x - x1) + y1
+  }
+  
+  return(modeled_outflow)
+}
+```
+
+```{r}
+D <- 5.46
+H_0 <-1.167
+C_a <- 0.00005
+C_d <- 0.17
+theta <- 20
+h_k <- 0.009
+x <- matrix(c(seq(70)*0.1))
+y <- (8/15)*C_d*sqrt(2*32.2)*tan(theta/2)*(((x-H_0)+h_k)^(5/2)) + C_a*pi*D*((2*32.2*(x-H_0))^(3/2))
+
+plot(x,y, type = "l")
+```
+
+Save Rating Curves as csv:
+```{r}
+# Used to compare to modeled rating curves
+
+# Create a data frame for all ponds
+rating_curve_df <- data.frame(Water.Level = elevation_relationship_ft, Manitou.Outflow = elevation_outflow_man, Garner.Outflow = elevation_outflow_gar, DobA5.Outflow = elevation_outflow_da5, Midtown.Outflow = elevation_outflow_mid, Baxter.Outflow = elevation_outflow_bax, DobA7.Outflow = elevation_outflow_da7, Owen.Outflow = elevation_outflow_owen, MarionDunn.Outflow = elevation_outflow_md, MadCity.Outflow = elevation_outflow_mc, DobA22.Outflow = elevation_outflow_da22, DobA4.Outflow = elevation_outflow_da4, DoorCreek.Outflow = elevation_outflow_dc, CommAve.Outflow = elevation_outflow_ca, DobA8.Outflow = elevation_outflow_da8, Elver.Outflow = elevation_outflow_elver, HPChurch.Outflow = elevation_outflow_hp, Hospital.Outflow = elevation_outflow_hos, Lot60_Outflow = elevation_outflow_l60, TwoFountains.Outflow = elevation_outflow_tf, Greentree.Outflow = elevation_outflow_gt, Owen.Outflow.2 = elevation_outflow_owen_2, MarionDunn.Outflow.2 = elevation_outflow_md_2, MadCity.Outflow.2 = elevation_outflow_mc_2, DobA22.Outflow.2 = elevation_outflow_da22_2, DobA4.Outflow.2 = elevation_outflow_da4_2, DoorCreek.Outflow.2 = elevation_outflow_dc_2, CommAve.Outflow.2 = elevation_outflow_ca_2, Hospital.Outflow.2 = elevation_outflow_hos_2, Lot60.Outflow.2 = elevation_outflow_l60_2, TwoFountains.Outflow.2 = elevation_outflow_tf_2, Greentree.Outflow.2 = elevation_outflow_gt_2)
+
+# Write csv for data frame
+write.csv(rating_curve_df, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Attenuation/Rating_Curves.csv")
+
+```
+
+Slope of Rating Curve (LF):
+```{r}
+# Finds the slope of the rating curve from the bottom of the outlet to 1 ft above the outlet
+get_rc_slope <- function(stage, outflow) {
+  y <- outflow
+  x <- stage
+  model <- lm(y~x)
+  plot(stage, outflow)
+  abline(model, col="red")
+  coefficients <- coef(model)
+  print(coefficients)
+}
+
+# Apply to each pond
+da8_slope <- get_rc_slope(elevation_relationship_ft[35:45], elevation_outflow_da8[35:45])
+elver_slope <- get_rc_slope(elevation_relationship_ft[17:27], elevation_outflow_elver[17:27])
+hp_slope <- get_rc_slope(elevation_relationship_ft[16:26], elevation_outflow_hp[16:26])
+hos_slope <- get_rc_slope(elevation_relationship_ft[15:25], elevation_outflow_hos[15:25])
+l60_slope <- get_rc_slope(elevation_relationship_ft[3:13], elevation_outflow_l60[3:13])
+tf_slope <- get_rc_slope(elevation_relationship_ft[14:24], elevation_outflow_tf[14:24])
+gt_slope <- get_rc_slope(elevation_relationship_ft[12:22], elevation_outflow_gt[12:22])
+gar_slope <- get_rc_slope(elevation_relationship_ft[12:22], elevation_outflow_gar[12:22])
+da7_slope <- get_rc_slope(elevation_relationship_ft[10:20], elevation_outflow_da7[10:20])
+owen_slope <- get_rc_slope(elevation_relationship_ft[25:35], elevation_outflow_owen[25:35])
+mid_slope <- get_rc_slope(elevation_relationship_ft[23:33], elevation_outflow_mid[23:33])
+md_slope <- get_rc_slope(elevation_relationship_ft[5:15], elevation_outflow_md[5:15])
+man_slope <- get_rc_slope(elevation_relationship_ft[7:17], elevation_outflow_man[7:17])
+mc_slope <- get_rc_slope(elevation_relationship_ft[8:18], elevation_outflow_mc[8:18])
+bax_slope <- get_rc_slope(elevation_relationship_ft[9:19], elevation_outflow_bax[9:19])
+da22_slope <- get_rc_slope(elevation_relationship_ft[20:30], elevation_outflow_da22[20:30])
+da5_slope <- get_rc_slope(elevation_relationship_ft[13:23], elevation_outflow_da5[13:23])
+da4_slope <- get_rc_slope(elevation_relationship_ft[12:22], elevation_outflow_da4[12:22])
+dc_slope <- get_rc_slope(elevation_relationship_ft[14:24], elevation_outflow_dc[14:24])
+ca_slope <- get_rc_slope(elevation_relationship_ft[12:22], elevation_outflow_ca[12:22])
+
+```
+
+Slope of Rating Curve (HF):
+```{r}
+# Finds the slope of the rating curve from the bottom of the outlet to 7 feet above the sensor
+get_rc_slope <- function(stage, outflow) {
+  y <- outflow
+  x <- stage
+  model <- lm(y~x)
+  plot(stage, outflow)
+  abline(model, col="red")
+  coefficients <- coef(model)
+  print(coefficients)
+}
+
+# Apply to all ponds
+da8_slope <- get_rc_slope(elevation_relationship_ft[35:70], elevation_outflow_da8[35:70])
+elver_slope <- get_rc_slope(elevation_relationship_ft[17:70], elevation_outflow_elver[17:70])
+hp_slope <- get_rc_slope(elevation_relationship_ft[16:70], elevation_outflow_hp[16:70])
+hos_slope <- get_rc_slope(elevation_relationship_ft[15:70], elevation_outflow_hos[15:70])
+l60_slope <- get_rc_slope(elevation_relationship_ft[3:70], elevation_outflow_l60[3:70])
+tf_slope <- get_rc_slope(elevation_relationship_ft[14:70], elevation_outflow_tf[14:70])
+gt_slope <- get_rc_slope(elevation_relationship_ft[12:70], elevation_outflow_gt[12:70])
+gar_slope <- get_rc_slope(elevation_relationship_ft[12:70], elevation_outflow_gar[12:70])
+da7_slope <- get_rc_slope(elevation_relationship_ft[10:70], elevation_outflow_da7[10:70])
+owen_slope <- get_rc_slope(elevation_relationship_ft[25:70], elevation_outflow_owen[25:70])
+mid_slope <- get_rc_slope(elevation_relationship_ft[23:70], elevation_outflow_mid[23:70])
+md_slope <- get_rc_slope(elevation_relationship_ft[5:70], elevation_outflow_md[5:70])
+man_slope <- get_rc_slope(elevation_relationship_ft[7:70], elevation_outflow_man[7:70])
+mc_slope <- get_rc_slope(elevation_relationship_ft[8:70], elevation_outflow_mc[8:70])
+bax_slope <- get_rc_slope(elevation_relationship_ft[9:70], elevation_outflow_bax[9:70])
+da22_slope <- get_rc_slope(elevation_relationship_ft[20:70], elevation_outflow_da22[20:70])
+da5_slope <- get_rc_slope(elevation_relationship_ft[13:70], elevation_outflow_da5[13:70])
+da4_slope <- get_rc_slope(elevation_relationship_ft[12:70], elevation_outflow_da4[12:70])
+dc_slope <- get_rc_slope(elevation_relationship_ft[14:70], elevation_outflow_dc[14:70])
+ca_slope <- get_rc_slope(elevation_relationship_ft[12:70], elevation_outflow_ca[12:70])
+
+```
+
+Outflow calculations using WinSLAMM rating curves:
+```{r}
+# DobA5
+doba5_mrc_outflow_2 <- modeled_outflow(elevation_ft_da5, doba5_model_rc)
+doba5_mrc_outflow_1 <- doba5_mrc_outflow_2[1:length(doba5_mrc_outflow_2)-1]
+doba5_mrc_outflow_2 <- doba5_mrc_outflow_2[2:length(doba5_mrc_outflow_2)]
+# Garner
+garner_mrc_outflow_2 <- modeled_outflow(elevation_ft_gar, garner_model_rc)
+garner_mrc_outflow_1 <- garner_mrc_outflow_2[1:length(garner_mrc_outflow_2)-1]
+garner_mrc_outflow_2 <- garner_mrc_outflow_2[2:length(garner_mrc_outflow_2)]
+# DobA7
+doba7_mrc_outflow_2 <- modeled_outflow(elevation_ft_da7, doba7_model_rc)
+doba7_mrc_outflow_1 <- doba7_mrc_outflow_2[1:length(doba7_mrc_outflow_2)-1]
+doba7_mrc_outflow_2 <- doba7_mrc_outflow_2[2:length(doba7_mrc_outflow_2)]
+# Marion-Dunn
+mariondunn_mrc_outflow_2 <- modeled_outflow(elevation_ft_md, mariondunn_model_rc)
+mariondunn_mrc_outflow_1 <- mariondunn_mrc_outflow_2[1:length(mariondunn_mrc_outflow_2)-1]
+mariondunn_mrc_outflow_2 <- mariondunn_mrc_outflow_2[2:length(mariondunn_mrc_outflow_2)]
+# Mad City
+madcity_mrc_outflow_2 <- modeled_outflow(elevation_ft_mc, madcity_model_rc)
+madcity_mrc_outflow_1 <- madcity_mrc_outflow_2[1:length(madcity_mrc_outflow_2)-1]
+madcity_mrc_outflow_2 <- madcity_mrc_outflow_2[2:length(madcity_mrc_outflow_2)]
+# Baxter
+baxter_mrc_outflow_2 <- modeled_outflow(elevation_ft_bax, baxter_model_rc)
+baxter_mrc_outflow_1 <- baxter_mrc_outflow_2[1:length(baxter_mrc_outflow_2)-1]
+baxter_mrc_outflow_2 <- baxter_mrc_outflow_2[2:length(baxter_mrc_outflow_2)]
+# Owen
+owen_mrc_outflow_2 <- modeled_outflow(elevation_ft_owen, owen_model_rc)
+owen_mrc_outflow_1 <- owen_mrc_outflow_2[1:length(owen_mrc_outflow_2)-1]
+owen_mrc_outflow_2 <- owen_mrc_outflow_2[2:length(owen_mrc_outflow_2)]
+# Commercial Ave
+commave_mrc_outflow_2 <- modeled_outflow(elevation_ft_ca, commave_model_rc)
+commave_mrc_outflow_1 <- commave_mrc_outflow_2[1:length(commave_mrc_outflow_2)-1]
+commave_mrc_outflow_2 <- commave_mrc_outflow_2[2:length(commave_mrc_outflow_2)]
+```
+
+Outflow calculations using equations (comparing to WinSLAMM rating curves):
+```{r}
+# DobA5
+doba5_calc_outflow_2 <- na.omit(calc_outflow_vweir(elevation_ft_da5, 15.5/12, (2.2/25.4)/12, 0.585, (30*pi)/180))
+doba5_calc_outflow_1 <- doba5_calc_outflow_2[1:length(doba5_calc_outflow_2)-1]
+doba5_calc_outflow_2 <- doba5_calc_outflow_2[2:length(doba5_calc_outflow_2)]
+# Garner
+garner_calc_outflow_2 <- calc_outflow_vweir_3(elevation_ft_gar, 1.167, 4.1, 5.2, 0.09, 0.55, 0.007, ((20*pi)/180), 5.46)
+garner_calc_outflow_1 <- garner_calc_outflow_2[1:length(garner_calc_outflow_2)-1]
+garner_calc_outflow_2 <- garner_calc_outflow_2[2:length(garner_calc_outflow_2)]
+# DobA7
+doba7_calc_outflow_2 <- calc_outflow_tweir_2(elevation_ft_da7, 1, 15, 0.4, 0.007, 3.28, 2.17)
+doba7_calc_outflow_1 <- doba7_calc_outflow_2[1:length(doba7_calc_outflow_2)-1]
+doba7_calc_outflow_2 <- doba7_calc_outflow_2[2:length(doba7_calc_outflow_2)]
+# Marion-Dunn
+mariondunn_calc_outflow_2 <- na.omit(calc_outflow_pipe_2(elevation_ft_md, 6.5/12, 1, 4.4167))
+mariondunn_calc_outflow_1 <- mariondunn_calc_outflow_2[1:length(mariondunn_calc_outflow_2)-1]
+mariondunn_calc_outflow_2 <- mariondunn_calc_outflow_2[2:length(mariondunn_calc_outflow_2)]
+# Mad City
+madcity_calc_outflow_2 <- na.omit(calc_outflow_pipe_2(elevation_ft_mc, 10/12, 1, 3.75)) 
+madcity_calc_outflow_1 <- madcity_calc_outflow_2[1:length(madcity_calc_outflow_2)-1]
+madcity_calc_outflow_2 <- madcity_calc_outflow_2[2:length(madcity_calc_outflow_2)]
+# Baxter
+baxter_calc_outflow_2 <- calc_outflow_baxter(elevation_ft_bax, 11/12, 35/12, 44/12, 3.1, 1.2, 2.25, 0.012136, 0.62, 0.5, 150)
+baxter_calc_outflow_1 <- baxter_calc_outflow_2[1:length(baxter_calc_outflow_2)-1]
+baxter_calc_outflow_2 <- baxter_calc_outflow_2[2:length(baxter_calc_outflow_2)]
+# Owen
+owen_calc_outflow_2 <- calc_outflow_owen(elevation_ft_owen, 2.5, 3.6, 6, 0.01, 0.3, 0.1, 3.78)
+owen_calc_outflow_1 <- owen_calc_outflow_2[1:length(owen_calc_outflow_2)-1]
+owen_calc_outflow_2 <- owen_calc_outflow_2[2:length(owen_calc_outflow_2)]
+# Commercial Ave
+commave_calc_outflow_2 <- calc_outflow_commave(elevation_ft_ca, 14.5/12, 1.3, 0.0025, 0.22)
+commave_calc_outflow_1 <- commave_calc_outflow_2[1:length(commave_calc_outflow_2)-1]
+commave_calc_outflow_2 <- commave_calc_outflow_2[2:length(commave_calc_outflow_2)]
+```
+
+Average inflow calculations comparing WinSLAMM rating curves to equations:
+```{r}
+# DobA5
+avg_inflow_da5_rc <- ((storage_2_da5-storage_1_da5)/time_delta)+((doba5_mrc_outflow_2+doba5_mrc_outflow_1)/2)
+avg_inflow_da5_calc <- ((storage_2_da5-storage_1_da5)/time_delta)+((doba5_calc_outflow_2+doba5_calc_outflow_1)/2)
+# Garner
+avg_inflow_gar_rc <- ((storage_2_gar-storage_1_gar)/time_delta)+((garner_mrc_outflow_2+garner_mrc_outflow_1)/2)
+avg_inflow_gar_calc <- ((storage_2_gar-storage_1_gar)/time_delta)+((garner_calc_outflow_2+garner_calc_outflow_1)/2)
+# DobA7
+avg_inflow_da7_rc <- ((storage_2_da7-storage_1_da7)/time_delta)+((doba7_mrc_outflow_2+doba7_mrc_outflow_1)/2)
+avg_inflow_da7_calc <- ((storage_2_da7-storage_1_da7)/time_delta)+((doba7_calc_outflow_2+doba7_calc_outflow_1)/2)
+# Marion-Dunn
+avg_inflow_md_rc <- ((storage_2_md-storage_1_md)/time_delta)+((mariondunn_mrc_outflow_2+mariondunn_mrc_outflow_1)/2)
+avg_inflow_md_calc <- ((storage_2_md-storage_1_md)/time_delta)+((mariondunn_calc_outflow_2+mariondunn_calc_outflow_1)/2)
+# Mad City
+avg_inflow_mc_rc <- ((storage_2_mc-storage_1_mc)/time_delta)+((madcity_mrc_outflow_2+madcity_mrc_outflow_1)/2)
+avg_inflow_mc_calc <- ((storage_2_mc-storage_1_mc)/time_delta)+((madcity_calc_outflow_2+madcity_calc_outflow_1)/2)
+# Baxter
+avg_inflow_bax_rc <- ((storage_2_bax-storage_1_bax)/time_delta)+((baxter_mrc_outflow_2+baxter_mrc_outflow_1)/2)
+avg_inflow_bax_calc <- ((storage_2_bax-storage_1_bax)/time_delta)+((baxter_calc_outflow_2+baxter_calc_outflow_1)/2)
+# Owen
+avg_inflow_owen_rc <- ((storage_2_owen-storage_1_owen)/time_delta)+((owen_mrc_outflow_2+owen_mrc_outflow_1)/2)
+avg_inflow_owen_calc <- ((storage_2_owen-storage_1_owen)/time_delta)+((owen_calc_outflow_2+owen_calc_outflow_1)/2)
+# Commercial Ave
+avg_inflow_ca_rc <- ((storage_2_ca-storage_1_ca)/time_delta)+((commave_mrc_outflow_2+commave_mrc_outflow_1)/2)
+avg_inflow_ca_calc <- ((storage_2_ca-storage_1_ca)/time_delta)+((commave_calc_outflow_2+commave_calc_outflow_1)/2)
+```
+
+Save inflow and outflow as a csv (WinSLAMM rating curve vs calculations)
+```{r}
+# Saves inflow and outflow calculations as csv
+
+# Function to save csv
+get_pond_io_csv <- function(pond_datetime, pond_inflow_rc, pond_outflow_rc, pond_inflow_calc, pond_outflow_calc, file_path) {
+  pond_df <- data.frame(DateTime = pond_datetime, Inflow.rc.cfs = pond_inflow_rc, Outflow.rc.cfs = pond_outflow_rc, Inflow.calc.cfs = pond_inflow_calc, Outflow.calc.cfs = pond_outflow_calc)
+  write.csv(pond_df, file = file_path, row.names=FALSE)
+}
+
+# DobA5
+get_pond_io_csv(datetime_da5[2:24205], avg_inflow_da5_rc, doba5_mrc_outflow_2, avg_inflow_da5_calc, doba5_calc_outflow_2, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA5/DobA5_Inflow_Outflow_RC_comp.csv")
+# Garner
+get_pond_io_csv(datetime_gar[2:46118], avg_inflow_gar_rc, garner_mrc_outflow_2, avg_inflow_gar_calc, garner_calc_outflow_2, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Garner/Garner_Inflow_Outflow_RC_comp.csv")
+# DobA7
+get_pond_io_csv(datetime_da7[2:46124], avg_inflow_da7_rc, doba7_mrc_outflow_2, avg_inflow_da7_calc, doba7_calc_outflow_2, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA7/DobA7_Inflow_Outflow_RC_comp.csv")
+# Marion Dunn
+get_pond_io_csv(datetime_md[2:46670], avg_inflow_md_rc, mariondunn_mrc_outflow_2, avg_inflow_md_calc, mariondunn_calc_outflow_2, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/MarionDunn/MarionDunn_Inflow_Outflow_RC_comp.csv")
+# Mad City
+get_pond_io_csv(datetime_mc[2:46676], avg_inflow_mc_rc, madcity_mrc_outflow_2, avg_inflow_mc_calc, madcity_calc_outflow_2, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/MadCity/MadCity_Inflow_Outflow_RC_comp.csv")
+# Baxter
+get_pond_io_csv(datetime_bax[2:46639], avg_inflow_bax_rc, baxter_mrc_outflow_2, avg_inflow_bax_calc, baxter_calc_outflow_2, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Baxter/Baxter_Inflow_Outflow_RC_comp.csv")
+# Owen
+get_pond_io_csv(datetime_owen[2:46723], avg_inflow_owen_rc, owen_mrc_outflow_2, avg_inflow_owen_calc, owen_calc_outflow_2, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Owen/Owen_Inflow_Outflow_RC_comp.csv")
+# Commercial Ave
+get_pond_io_csv(datetime_ca[2:46605], avg_inflow_ca_rc, commave_mrc_outflow_2, avg_inflow_ca_calc, commave_calc_outflow_2, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/CommAve/CommAve_Inflow_Outflow_RC_comp.csv")
+
+```
+
+Plots comparing WinSLAMM rating curves to calculations
+```{r}
+# Plots of inflow vs outflow in each pond 
+plot_inflow_outflow <- function(avg_inflow_rc, avg_outflow_rc, avg_inflow_calc, avg_outflow_calc, datetime, name) {
+  plot(avg_inflow_rc, type="l", lwd=3, pch=17, col="blue",
+     main=paste(name, "Inflow and Outflow Hydrographs"), 
+     xlab="Date Time", 
+     ylab="Flow (cfs)", xaxt="n")
+ # add a date axis
+  get_dates <- function(dates) {
+    d = strsplit(dates,' ')[[1]][1]
+    d = strsplit(d,'/')[[1]]
+    return(paste(d[1], '/', d[2], sep=""))
+  }
+  
+  dates = lapply(datetime ,get_dates)
+  idx_change=c()
+  last_d = 0
+  for (i in 1:length(dates)) {
+    if (dates[[i]] != last_d) {
+      idx_change = append(idx_change, i)
+      last_d = dates[i]
+    }
+  }
+    
+  axis(1,at=idx_change,labels=dates[idx_change])
+  lines(avg_outflow_rc, type="l", lwd=3, pch=17, col="red")
+  lines(avg_inflow_calc, type="l", lwd=3, pch=17, col="green")
+  lines(avg_outflow_calc, type="l", lwd=3, pch=17, col="orange")
+  legend("topright",c("Inflow RC", "Outflow RC", "Inflow Calc", "Outflow Calc"), 
+       col=c("blue", "red", "green", "orange"),lty=1, lwd=3)
+
+}
+
+doba5_io_plot <- plot_inflow_outflow(avg_inflow_da5_rc, doba5_mrc_outflow_2, avg_inflow_da5_calc, doba5_calc_outflow_2, datetime_da5, "DobsonA5")
+garner_io_plot <- plot_inflow_outflow(avg_inflow_gar_rc, garner_mrc_outflow_2, avg_inflow_gar_calc, garner_calc_outflow_2, datetime_gar, "Garner")
+doba7_io_plot <- plot_inflow_outflow(avg_inflow_da7_rc, doba7_mrc_outflow_2, avg_inflow_da7_calc, doba7_calc_outflow_2, datetime_da7, "DobsonA7")
+mariondunn_io_plot <- plot_inflow_outflow(avg_inflow_md_rc, mariondunn_mrc_outflow_2, avg_inflow_md_calc, mariondunn_calc_outflow_2, datetime_md, "Marion Dunn")
+madcity_io_plot <- plot_inflow_outflow(avg_inflow_mc_rc, madcity_mrc_outflow_2, avg_inflow_mc_calc, madcity_calc_outflow_2, datetime_mc, "Mad City")
+baxter_io_plot <- plot_inflow_outflow(avg_inflow_bax_rc, baxter_mrc_outflow_2, avg_inflow_bax_calc, baxter_calc_outflow_2, datetime_bax, "Baxter")
+owen_io_plot <- plot_inflow_outflow(avg_inflow_owen_rc, owen_mrc_outflow_2, avg_inflow_owen_calc, owen_calc_outflow_2, datetime_owen, "Owen")
+commave_io_plot <- plot_inflow_outflow(avg_inflow_ca_rc, commave_mrc_outflow_2, avg_inflow_ca_calc, commave_calc_outflow_2, datetime_ca, "Commercial Ave")
+```
+
+Outflow calculations: 
+```{r}
+# Calculates outflow using actual water level measurements from pressure transducers
+
+# Manitou
+# outflow 2
+outflow_2_man <- calc_outflow_vweir(elevation_ft_man, 8/12, (0.8/25.4)/12, 0.5775, (120*pi)/180)
+outflow_1_man <- outflow_2_man[1:length(outflow_2_man)-1]
+outflow_2_man <- outflow_2_man[2:length(outflow_2_man)]
+
+# Garner
+outflow_2_gar <- calc_outflow_vweir(elevation_ft_gar, 14/12, (2.75/25.4)/12, 0.595, (20*pi)/180)
+outflow_1_gar <- outflow_2_gar[1:length(outflow_2_gar)-1]
+outflow_2_gar <- outflow_2_gar[2:length(outflow_2_gar)]
+
+# DobA5
+outflow_2_da5 <- calc_outflow_vweir(elevation_ft_da5, 15.5/12, (2.2/25.4)/12, 0.585, (30*pi)/180)
+outflow_1_da5 <- outflow_2_da5[1:length(outflow_2_da5)-1]
+outflow_2_da5 <- outflow_2_da5[2:length(outflow_2_da5)]
+
+# Midtown
+outflow_2_mid <- calc_outflow_rweir(elevation_ft_mid, 27.25/12, 10, 0.00984, 0.61)
+outflow_1_mid <- outflow_2_mid[1:length(outflow_2_mid)-1]
+outflow_2_mid <- outflow_2_mid[2:length(outflow_2_mid)]
+
+# Baxter
+outflow_2_bax <- calc_outflow_rweir(elevation_ft_bax, 11/12, 2.25, 0.012136, 0.62)
+outflow_1_bax <- outflow_2_bax[1:length(outflow_2_bax)-1]
+outflow_2_bax <- outflow_2_bax[2:length(outflow_2_bax)]
+
+# DobA8
+outflow_2_da8 <- calc_outflow_rweir(elevation_ft_da8, 42/12, 7.5, 0.00984, 0.6)
+outflow_1_da8 <- outflow_2_da8[1:length(outflow_2_da8)-1]
+outflow_2_da8 <- outflow_2_da8[2:length(outflow_2_da8)]
+
+# Elver
+outflow_2_elver <- calc_outflow_rweir(elevation_ft_elver, 20.5/12, 14, 0.01066, 0.6)
+outflow_1_elver <- outflow_2_elver[1:length(outflow_2_elver)-1]
+outflow_2_elver <- outflow_2_elver[2:length(outflow_2_elver)]
+
+# High Point Church
+outflow_2_hp <- calc_outflow_rweir(elevation_ft_hp, 19/12, 20, 0.01476, 0.62)
+outflow_1_hp <- outflow_2_hp[1:length(outflow_2_hp)-1]
+outflow_2_hp <- outflow_2_hp[2:length(outflow_2_hp)]
+
+# DobA7
+outflow_2_da7 <- calc_outflow_tweir(elevation_ft_da7, 12/12, 5, 0.42)
+outflow_1_da7 <- outflow_2_da7[1:length(outflow_2_da7)-1]
+outflow_2_da7 <- outflow_2_da7[2:length(outflow_2_da7)]
+
+# Owen
+outflow_2_owen <- calc_outflow_pipe(elevation_ft_owen, 2.5, 5.5, 4)
+outflow_1_owen <- outflow_2_owen[1:length(outflow_2_owen)-1]
+outflow_2_owen <- outflow_2_owen[2:length(outflow_2_owen)]
+
+# Marion-Dunn
+outflow_2_md <- calc_outflow_pipe(elevation_ft_md, 6.5/12, 3.4167, 4.4167)
+outflow_1_md <- outflow_2_md[1:length(outflow_2_md)-1]
+outflow_2_md <- outflow_2_md[2:length(outflow_2_md)]
+
+# Mad City
+outflow_2_mc <- calc_outflow_pipe(elevation_ft_mc, 10/12, 3.25, 3.75)
+outflow_1_mc <- outflow_2_mc[1:length(outflow_2_mc)-1]
+outflow_2_mc <- outflow_2_mc[2:length(outflow_2_mc)]
+
+# DobA22
+outflow_2_da22 <- calc_outflow_pipe(elevation_ft_da22, 2, 4, 3.17)
+outflow_1_da22 <- outflow_2_da22[1:length(outflow_2_da22)-1]
+outflow_2_da22 <- outflow_2_da22[2:length(outflow_2_da22)]
+
+# DobA4
+outflow_2_da4 <- calc_outflow_pipe(elevation_ft_da4, 14.5/12, 3.7083, 2.5)
+outflow_1_da4 <- outflow_2_da4[1:length(outflow_2_da4)-1]
+outflow_2_da4 <- outflow_2_da4[2:length(outflow_2_da4)]
+
+# Door Creek
+outflow_2_dc <- calc_outflow_pipe(elevation_ft_dc, 17/12, 17/12, 4)
+outflow_1_dc <- outflow_2_dc[1:length(outflow_2_dc)-1]
+outflow_2_dc <- outflow_2_dc[2:length(outflow_2_dc)]
+
+# Commercial Ave
+outflow_2_ca <- calc_outflow_pipe(elevation_ft_ca, 14.5/12, 6.2083, 65/12)
+outflow_1_ca <- outflow_2_ca[1:length(outflow_2_ca)-1]
+outflow_2_ca <- outflow_2_ca[2:length(outflow_2_ca)]
+
+# Hospital
+outflow_2_hos <- calc_outflow_pipe(elevation_ft_hos, 18/12, 4.5, 3)
+outflow_1_hos <- outflow_2_hos[1:length(outflow_2_hos)-1]
+outflow_2_hos <- outflow_2_hos[2:length(outflow_2_hos)]
+
+# Lot 60
+outflow_2_l60 <- calc_outflow_pipe(elevation_ft_l60, 3.5/12, 2.2917, 2)
+outflow_1_l60 <- outflow_2_l60[1:length(outflow_2_l60)-1]
+outflow_2_l60 <- outflow_2_l60[2:length(outflow_2_l60)]
+
+# Two Fountains
+outflow_2_tf <- calc_outflow_pipe(elevation_ft_tf, 16.5/12, 3.33333, 2)
+outflow_1_tf <- outflow_2_tf[1:length(outflow_2_tf)-1]
+outflow_2_tf <- outflow_2_tf[2:length(outflow_2_tf)]
+
+# Greentree
+outflow_2_gt <- calc_outflow_pipe(elevation_ft_gt, 14.5/12, 9.2083, 12)
+outflow_1_gt <- outflow_2_gt[1:length(outflow_2_gt)-1]
+outflow_2_gt <- outflow_2_gt[2:length(outflow_2_gt)]
+
+```
+
+Average Inflow calculations:
+```{r}
+# Calculates inflow using values from actual water level measurements
+
+# time delta used in Puls caluclations
+time_delta <- time_sec[2:length(time_sec)] - time_sec[1:length(time_sec)-1]
+time_delta <- time_delta[1] # constant
+
+# average inflow 
+# Manitou
+avg_inflow_man <- ((storage_2_man-storage_1_man)/time_delta)+((outflow_2_man+outflow_1_man)/2)
+# Garner
+avg_inflow_gar <- ((storage_2_gar-storage_1_gar)/time_delta)+((outflow_2_gar+outflow_1_gar)/2)
+# DobA5
+avg_inflow_da5 <- ((storage_2_da5-storage_1_da5)/time_delta)+((outflow_2_da5+outflow_1_da5)/2)
+# Midtown
+avg_inflow_mid <- ((storage_2_mid-storage_1_mid)/time_delta)+((outflow_2_mid+outflow_1_mid)/2)
+# Baxter
+avg_inflow_bax <- ((storage_2_bax-storage_1_bax)/time_delta)+((outflow_2_bax+outflow_1_bax)/2)
+# DobA8
+avg_inflow_da8 <- ((storage_2_da8-storage_1_da8)/time_delta)+((outflow_2_da8+outflow_1_da8)/2)
+# Elver
+avg_inflow_elver <- ((storage_2_elver-storage_1_elver)/time_delta)+((outflow_2_elver+outflow_1_elver)/2)
+# High Point Church
+avg_inflow_hp <- ((storage_2_hp-storage_1_hp)/time_delta)+((outflow_2_hp+outflow_1_hp)/2)
+# DobA7
+avg_inflow_da7 <- ((storage_2_da7-storage_1_da7)/time_delta)+((outflow_2_da7+outflow_1_da7)/2)
+# Owen
+avg_inflow_owen <- ((storage_2_owen-storage_1_owen)/time_delta)+((outflow_2_owen+outflow_1_owen)/2)
+# Marion-Dunn
+avg_inflow_md <- ((storage_2_md-storage_1_md)/time_delta)+((outflow_2_md+outflow_1_md)/2)
+# Mad City
+avg_inflow_mc <- ((storage_2_mc-storage_1_mc)/time_delta)+((outflow_2_mc+outflow_1_mc)/2)
+# DobA22
+avg_inflow_da22 <- ((storage_2_da22-storage_1_da22)/time_delta)+((outflow_2_da22+outflow_1_da22)/2)
+# DobA4
+avg_inflow_da4 <- ((storage_2_da4-storage_1_da4)/time_delta)+((outflow_2_da4+outflow_1_da4)/2)
+# Door Creek
+avg_inflow_dc <- ((storage_2_dc-storage_1_dc)/time_delta)+((outflow_2_dc+outflow_1_dc)/2)
+# Commercial Ave
+avg_inflow_ca <- ((storage_2_ca-storage_1_ca)/time_delta)+((outflow_2_ca+outflow_1_ca)/2)
+# Hospital
+avg_inflow_hos <- ((storage_2_hos-storage_1_hos)/time_delta)+((outflow_2_hos+outflow_1_hos)/2)
+# Lot 60
+avg_inflow_l60 <- ((storage_2_l60-storage_1_l60)/time_delta)+((outflow_2_l60+outflow_1_l60)/2)
+# Two Fountains
+avg_inflow_tf <- ((storage_2_tf-storage_1_tf)/time_delta)+((outflow_2_tf+outflow_1_tf)/2)
+# Greentree
+avg_inflow_gt <- ((storage_2_gt-storage_1_gt)/time_delta)+((outflow_2_gt+outflow_1_gt)/2)
+
+```
+
+```{r}
+# Saves inflow and outflow calculations as csv
+
+# Function to save csv
+get_pond_io_csv <- function(pond_datetime, pond_inflow, pond_outflow, file_path) {
+  pond_df <- data.frame(DateTime = pond_datetime, Inflow.cfs = pond_inflow, Outflow.cfs = pond_outflow)
+  write.csv(pond_df, file = file_path, row.names=FALSE)
+}
+
+# Baxter
+get_pond_io_csv(datetime_bax[2:46639], avg_inflow_bax, outflow_2_bax, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Baxter/Baxter_Inflow_Outflow.csv")
+# Commercial Ave
+get_pond_io_csv(datetime_ca[2:46605], avg_inflow_ca, outflow_2_ca, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/CommAve/CommAve_Inflow_Outflow.csv")
+# DobA4
+get_pond_io_csv(datetime_da4[2:46611], avg_inflow_da4, outflow_2_da4, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA4/DobA4_Inflow_Outflow.csv")
+# DobA5
+get_pond_io_csv(datetime_da5[2:24205], avg_inflow_da5, outflow_2_da5, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA5/DobA5_Inflow_Outflow.csv")
+# DobA7
+get_pond_io_csv(datetime_da7[2:46124], avg_inflow_da7, outflow_2_da7, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA7/DobA7_Inflow_Outflow.csv")
+# DobA22
+get_pond_io_csv(datetime_da22[2:46633], avg_inflow_da22, outflow_2_da22, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA22/DobA22_Inflow_Outflow.csv")
+# Door Creek
+get_pond_io_csv(datetime_dc[2:46622], avg_inflow_dc, outflow_2_dc, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DoorCreek/DoorCreek_Inflow_Outflow.csv")
+# Garner
+get_pond_io_csv(datetime_gar[2:46118], avg_inflow_gar, outflow_2_gar, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Garner/Garner_Inflow_Outflow.csv")
+# Mad City
+get_pond_io_csv(datetime_mc[2:46676], avg_inflow_mc, outflow_2_mc, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/MadCity/MadCity_Inflow_Outflow.csv")
+# Manitou
+get_pond_io_csv(datetime_man[1:55876], avg_inflow_man[1:55876], outflow_2_man, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Manitou/Manitou_Inflow_Outflow.csv")
+# Marion Dunn
+get_pond_io_csv(datetime_md[2:46670], avg_inflow_md, outflow_2_md, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/MarionDunn/MarionDunn_Inflow_Outflow.csv")
+# Midtown
+get_pond_io_csv(datetime_mid[2:21321], avg_inflow_mid, outflow_2_mid, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Midtown/Midtown_Inflow_Outflow.csv")
+# Owen
+get_pond_io_csv(datetime_owen[2:46723], avg_inflow_owen, outflow_2_owen, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Owen/Owen_Inflow_Outflow.csv")
+# DobA8
+get_pond_io_csv(datetime_da8[1:47283], avg_inflow_da8[1:47283], outflow_2_da8, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA8/DobA8_Inflow_Outflow.csv")
+# Elver
+get_pond_io_csv(datetime_elver[1:47287], avg_inflow_elver[1:47287], outflow_2_elver, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Elver/Elver_Inflow_Outflow.csv")
+# High Point Church
+get_pond_io_csv(datetime_hp[1:46607], avg_inflow_hp[1:46607], outflow_2_hp, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/HPChurch/HPChurch_Inflow_Outflow.csv")
+# Hospital
+get_pond_io_csv(datetime_hos[1:47021], avg_inflow_hos[1:47021], outflow_2_hos, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Hospital/Hospital_Inflow_Outflow.csv")
+# Lot 60
+get_pond_io_csv(datetime_l60[1:47019], avg_inflow_l60[1:47019], outflow_2_l60, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Lot60/Lot60_Inflow_Outflow.csv")
+# Two Fountains
+get_pond_io_csv(datetime_tf[1:47291], avg_inflow_tf[1:47291], outflow_2_tf, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/TwoFountains/TwoFountains_Inflow_Outflow.csv")
+# Greentree
+get_pond_io_csv(datetime_gt[1:47295], avg_inflow_gt[1:47295], outflow_2_gt, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Greentree/Greentree_Inflow_Outflow.csv")
+
+```
+
+Inflow/Outflow Plots:
+```{r}
+# Plots of inflow vs outflow in each pond 
+plot_inflow_outflow <- function(avg_inflow, avg_outflow, datetime, name) {
+  plot(avg_inflow, type="l", lwd=3, pch=17, col="blue",
+     main=paste(name, "Inflow and Outflow Hydrographs"), 
+     xlab="Date Time", 
+     ylab="Flow (cfs)", xaxt="n")
+ # add a date axis
+  get_dates <- function(dates) {
+    d = strsplit(dates,' ')[[1]][1]
+    d = strsplit(d,'/')[[1]]
+    return(paste(d[1], '/', d[2], sep=""))
+  }
+  
+  dates = lapply(datetime ,get_dates)
+  idx_change=c()
+  last_d = 0
+  for (i in 1:length(dates)) {
+    if (dates[[i]] != last_d) {
+      idx_change = append(idx_change, i)
+      last_d = dates[i]
+    }
+  }
+    
+  axis(1,at=idx_change,labels=dates[idx_change])
+  lines(avg_outflow, type="l", lwd=3, pch=17, col="red")
+  legend("topright",c("Inflow", "Outflow"), 
+       col=c("blue", "red"),lty=1, lwd=3)
+
+}
+  
+  
+baxter_io_plot <- plot_inflow_outflow(avg_inflow_bax, outflow_2_bax, datetime_bax, "Baxter")
+commave_io_plot <- plot_inflow_outflow(avg_inflow_ca, outflow_2_ca, datetime_ca, "Commercial Ave")
+doba4_io_plot <- plot_inflow_outflow(avg_inflow_da4, outflow_2_da4, datetime_da4, "DobsonA4")
+doba5_io_plot <- plot_inflow_outflow(avg_inflow_da5, outflow_2_da5, datetime_da5, "DobsonA5")
+doba7_io_plot <- plot_inflow_outflow(avg_inflow_da7, outflow_2_da7, datetime_da7, "DobsonA7")
+doba8_io_plot <- plot_inflow_outflow(avg_inflow_da8, outflow_2_da8, datetime_da8, "DobsonA8")
+doba22_io_plot <- plot_inflow_outflow(avg_inflow_da22, outflow_2_da22, datetime_da22, "DobsonA22")
+doorcreek_io_plot <- plot_inflow_outflow(avg_inflow_dc, outflow_2_dc, datetime_dc, "Door Creek")
+elver_io_plot <- plot_inflow_outflow(avg_inflow_elver, outflow_2_elver, datetime_elver, "Elver")
+garner_io_plot <- plot_inflow_outflow(avg_inflow_gar, outflow_2_gar, datetime_gar, "Garner")
+greentree_io_plot <- plot_inflow_outflow(avg_inflow_gt, outflow_2_gt, datetime_gt, "Greentree")
+hospital_io_plot <- plot_inflow_outflow(avg_inflow_hos, outflow_2_hos, datetime_hos, "Hospital")
+hpchurch_io_plot <- plot_inflow_outflow(avg_inflow_hp, outflow_2_hp, datetime_hp, "HP Church")
+lot60_io_plot <- plot_inflow_outflow(avg_inflow_l60, outflow_2_l60, datetime_l60, "Lot 60")
+madcity_io_plot <- plot_inflow_outflow(avg_inflow_mc, outflow_2_mc, datetime_mc, "Mad City")
+manitou_io_plot <- plot_inflow_outflow(avg_inflow_man, outflow_2_man, datetime_man, "Manitou")
+mariondunn_io_plot <- plot_inflow_outflow(avg_inflow_md, outflow_2_md, datetime_md, "Marion Dunn")
+midtown_io_plot <- plot_inflow_outflow(avg_inflow_mid, outflow_2_mid, datetime_mid, "Midtown")
+owen_io_plot <- plot_inflow_outflow(avg_inflow_owen, outflow_2_owen, datetime_owen, "Owen")
+twofountains_io_plot <- plot_inflow_outflow(avg_inflow_tf, outflow_2_tf, datetime_tf, "Two Fountains")
+
+```
+Get attenuation for each storm
+```{r}
+#getting max bounce, temp range/variance, attenuation for each storm
+storm_dates = rbind(
+  # start, end, amount it rained
+  c("7/4/23 0:00", "7/19/23 0:00", 1.68),
+  c("7/28/23 0:00", "8/8/23 0:00", 1.51),
+  c("8/14/23 0:00", "8/24/23 0:00", 1.59),
+  c("9/6/23 0:00", "9/20/23 0:00", 0.31),
+  c("9/24/23 0:00", "10/4/23 0:00", 1.51),
+  c("10/13/23 0:00", "10/18/23 0:00", 1.21)
+)
+
+# percent reduction in peak inflow
+get_attenuation <- function(inflow, outflow) {
+  max_inflow <- max(inflow)
+  max_outflow <- max(outflow)
+  #return(max_inflow - max_outflow)
+  return(((max_inflow-max_outflow)/max_inflow)*100)
+}
+```
+
+Create data frame of attenuation for each storm:
+```{r}
+#adding attenuation to data frame
+get_storm_data <- function(pond_name, pond_df, storm_dates) {
+  df <- data.frame()
+  for (i in 1:nrow(storm_dates)) {
+    start_idx = which(pond_df$DateTime == storm_dates[i,1])
+    end_idx = which(pond_df$DateTime == storm_dates[i,2])
+    # if the date doesn't exist, skip it for this pond
+    if (length(start_idx) == 0 | length(end_idx) == 0) {
+      print(paste("skipping date:",storm_dates[i,1]))
+      next
+    }
+
+    df = rbind(df, data.frame(
+      attenuation = get_attenuation(pond_df$Inflow.cfs[start_idx:end_idx], pond_df$Outflow.cfs[start_idx:end_idx]),
+      rainamount = as.double(storm_dates[i,3]),
+      row.names = paste(pond_name, i)
+    ))
+  }
+
+  return(df)
+}
+
+storm_data <- data.frame()
+for (pond_name in pond_names$Pond.Name) {
+  #print(paste("reading pond",pond_name))
+  pond_data <- read.csv(paste("../Water_Level/",pond_name,"/",pond_name,"_Inflow_Outflow.csv", sep=""))
+  # grab the data for each storm
+  pond_storm_data <- get_storm_data(pond_name, pond_data, storm_dates)
+
+  storm_data <- rbind(storm_data, pond_storm_data)
+}
+
+attenuation_dataframe <- write.csv(storm_data, file = "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/StormAttenuation.csv", row.names=TRUE)
+```
+
