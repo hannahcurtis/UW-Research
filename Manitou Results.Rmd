@@ -1,0 +1,336 @@
+---
+title: "Manitou Results"
+author: "Hannah Curtis"
+date: "2022-12-04"
+output: html_document
+---
+Arboretum vs home abs pressure:
+```{r}
+
+atm_data <- read.csv("Atm_Pressure_Data.csv", header=TRUE, 
+                     stringsAsFactors=FALSE, skip=2)
+atm_data <- atm_data[1:3990,]
+
+# drop NA/unnecessary rows and columns 
+# atm_data <- atm_data[c("Date_Time_Arb", "Date_Time_Home", "Abs Pres Arb, psi", "Abs Pres Home, psi"]
+# atm_data <- na.omit(atm_data)
+
+atm_arb <- atm_data$Abs.Pres.Arb..psi
+arb_dates <- atm_data$Date_Time_Arb
+
+atm_home <- atm_data$Abs.Pres.Home..psi
+home_dates <- atm_data$Date_Time_Home
+
+plot(atm_arb,
+     type="l", col="blue", pch=17,
+     # ylim=c(min(atm_data$atm_arb), max(atm_data$atm_arb)),
+     main="Arboretum vs Home Absolute Pressure", 
+     xlab="Date", 
+     ylab="Absolute Pressure (psi)",
+     xaxt='n'
+)
+
+# highlight the ranges that are greater than the margin of error (0.063)
+margin = 0.063
+diff = (atm_arb - atm_home) > margin
+start = 0
+for (i in 1:length(diff)) {
+  if (diff[i] & start==0) {
+    start = i
+  } else if ((!diff[i] | i==length(diff)) & start != 0) {
+    # draw the rectangle
+    rect(xleft=start, xright=i,
+         ybottom=par("usr")[3], ytop=par("usr")[4],
+         density=NA, col="lightgray")
+    start=0
+  }
+}
+
+# add line for home absolute pressure and legend
+lines(atm_home, col="red")
+lines(atm_arb, col="blue")
+legend("bottomright",c("Arb Abs Pressure", "Home Abs Pressure"), col=c("blue", "red"), lty =c(1))
+
+# add a date axis
+get_dates <- function(datetime) {
+  d = strsplit(datetime,' ')[[1]][1]
+  d = strsplit(d,'/')[[1]]
+  return(paste(d[1], '/', d[2], sep=""))
+}
+
+dates = lapply(home_dates,get_dates)
+idx_change=c()
+last_d = 0
+for (i in 1:length(dates)) {
+  if (dates[[i]] != last_d) {
+    idx_change = append(idx_change, i)
+    last_d = dates[i]
+  }
+}
+  
+axis(1,at=idx_change,labels=dates[idx_change])
+
+```
+
+Arboretum vs home difference in pressure:
+```{r}
+
+pres_diff <- (atm_arb - atm_home)
+
+plot(pres_diff,
+     type="l", col="blue", pch=17,
+     main="Difference in Arboretum and Home Absolute Pressure", 
+     xlab="Date", 
+     ylab="Pressure Difference (psi)",
+     xaxt='n'
+)
+axis(1,at=idx_change,labels=dates[idx_change])
+```
+
+Accounting for the difference due to elevation:
+```{r}
+psi_at_height = function(h) {
+  Pb = 101325.00	
+  Tb = 288.15
+  Lb = -0.0065
+  hb = 0
+  g0 = 9.80665
+  R  = 8.3144598
+  M  = 0.0289644
+  pa = Pb*(((Tb+(h-hb)*Lb) / Tb)^((-g0*M)/(R*Lb)))
+  psi = pa / (1000 * 6.894757)
+  return(psi)
+}
+
+psi_home = psi_at_height(280)
+psi_arb = psi_at_height(267)
+
+elv_diff = psi_arb - psi_home
+print(elv_diff)
+```
+```{r}
+plot((atm_arb - atm_home) - (psi_arb - psi_home),
+     type="l", col="blue", pch=17,
+     main="Pressure Diff, accounting for elevation", 
+     xlab="Date", 
+     ylab="Pressure Difference (psi)",
+     xaxt='n'
+)
+axis(1,at=idx_change,labels=dates[idx_change])
+```
+
+Water level with data from arboretum vs home:
+```{r}
+water_level_data <- read.csv("Manitou_Arb_vs_Home.csv", header=TRUE, 
+                             stringsAsFactors=FALSE)
+
+# drop NA/unnecessary rows and columns 
+water_level_data <- na.omit(water_level_data)   
+
+water_level_arb <- water_level_data$Water.Level.Arb
+water_level_home <- water_level_data$Water.Level.Home
+date_time <- water_level_data$Date.Time
+
+plot(water_level_arb,
+     type="l", col="blue", pch=17,
+     main="Arboretum vs Home Water Level", 
+     xlab="Date", 
+     ylab="Water Level (feet)",
+     xaxt='n'
+)
+
+# highlight the ranges that are greater than the margin of error (0.01/0.02)
+margin = 0.02
+diff = (abs(water_level_arb - water_level_home)) > margin
+start = 0
+for (i in 1:length(diff)) {
+  if (diff[i] & start==0) {
+    start = i
+  } else if ((!diff[i] | i==length(diff)) & start != 0) {
+    # draw the rectangle
+    rect(xleft=start, xright=i,
+         ybottom=par("usr")[3], ytop=par("usr")[4],
+         density=NA, col="lightgray")
+    start=0
+  }
+}
+
+# add legend and line for home water level 
+lines(water_level_home, col="red")
+lines(water_level_arb, col="blue")
+legend("topright",c("Arb Water Level", "Home Water Level"), col=c("blue", "red"), lty =c(1))
+
+axis(1,at=idx_change,labels=dates[idx_change])
+
+```
+
+Plot of difference in water levels between arboretum and home:
+```{r}
+water_level_diff <- (water_level_arb - water_level_home)
+
+plot(water_level_diff,
+     type="l", col="blue", pch=17,
+     main="Difference in Water Levels from Arboretum and Home Pressure Data", 
+     xlab="Date", 
+     ylab="Water Level Difference (feet)",
+     xaxt='n'
+)
+axis(1,at=idx_change,labels=dates[idx_change])
+```
+
+
+```{r}
+water_pressure <- read.csv("Manitou_Test_clean.csv", 
+                           header=TRUE,stringsAsFactors=FALSE,skip=1)
+water_pressure <- water_pressure[1:3990,"Abs.Pres..psi"]
+water_pressure <- na.omit(water_pressure)
+# (P - P_atm) = pgh
+# h = (P - P_atm) / pg
+p_diff = (water_pressure - atm_arb) * 1000 * 6.89476 # Pa
+water_depth_arb = (p_diff / (997.0474 * 9.80665)) * 3.28084 # ft
+p_diff = (water_pressure - atm_home) * 1000 * 6.89476 # Pa
+water_depth_home = (p_diff / (997.0474 * 9.80665)) * 3.28084 # ft
+
+plot(water_depth_arb,
+     type="l", col="blue", pch=17,
+     main="Arboretum vs Home Water Level", 
+     xlab="Date", 
+     ylab="Absolute Pressure (psi)",
+     xaxt='n'
+)
+
+# highlight the ranges that are greater than the margin of error (0.09)
+margin = 0.09
+diff = abs(water_depth_arb - water_depth_home) > margin
+start = 0
+for (i in 1:length(diff)) {
+  if (diff[i] & start==0) {
+    start = i
+  } else if ((!diff[i] | i==length(diff)) & start != 0) {
+    # draw the rectangle
+    rect(xleft=start, xright=i,
+         ybottom=par("usr")[3], ytop=par("usr")[4],
+         density=NA, col="lightgray")
+    start=0
+  }
+}
+
+# add line for home absolute pressure and legend
+lines(water_depth_arb, col="red")
+lines(water_depth_home, col="blue")
+legend("bottomright",c("Arb depth (ft)", "Home depth (ft)"), col=c("blue", "red"), lty =c(1))
+axis(1,at=idx_change,labels=dates[idx_change])
+```
+
+```{r}
+# accounting for the difference in elevation
+
+# (P - P_atm) = pgh
+# h = (P - P_atm) / pg
+p_diff = (water_pressure - atm_arb) * 1000 * 6.89476 # Pa
+water_depth_arb_adj = (p_diff / (997.0474 * 9.80665)) * 3.28084 # ft
+p_diff = (water_pressure - atm_home - elv_diff) * 1000 * 6.89476 # Pa
+water_depth_home_adj = (p_diff / (997.0474 * 9.80665)) * 3.28084 # ft
+
+plot(water_depth_arb_adj,
+     type="l", col="blue", pch=17,
+     main="Arboretum vs Home Water Level", 
+     xlab="Date", 
+     ylab="Absolute Pressure (psi)",
+     xaxt='n'
+)
+
+# highlight the ranges that are greater than the margin of error (0.09)
+margin = 0.015
+diff = abs(water_depth_arb_adj - water_depth_home_adj) > margin
+start = 0
+for (i in 1:length(diff)) {
+  if (diff[i] & start==0) {
+    start = i
+  } else if ((!diff[i] | i==length(diff)) & start != 0) {
+    # draw the rectangle
+    rect(xleft=start, xright=i,
+         ybottom=par("usr")[3], ytop=par("usr")[4],
+         density=NA, col="lightgray")
+    start=0
+  }
+}
+
+# add line for home absolute pressure and legend
+lines(water_depth_arb_adj, col="red")
+lines(water_depth_home_adj, col="blue")
+legend("bottomright",c("Arb depth (ft)", "Home depth, adjusted (ft)"), col=c("blue", "red"), lty =c(1))
+axis(1,at=idx_change,labels=dates[idx_change])
+```
+
+Test of atmpospheric pressure readings:
+```{r}
+atm_data_test <- read.csv("Abs_Pressure_Test.csv", header=TRUE, 
+                     stringsAsFactors=FALSE, skip=0)
+
+atm_arb_test <- atm_data_test$Abs.Pres.Arb
+atm_home_test <- atm_data_test$Abs.Pres.Home
+temp_arb_test <- atm_data_test$Temp.Arb
+temp_home_test <- atm_data_test$Temp.Home
+date_time <- atm_data_test$Date.Time
+
+pres_diff_test <- (atm_arb_test - atm_home_test)
+
+plot(pres_diff_test,
+     type="l", col="blue", pch=17,
+     main="Test of Difference in Arboretum and Home Absolute Pressure", 
+     xlab="Date", 
+     ylab="Pressure Difference (psi)",
+     xaxt="n"
+)
+
+# add a date axis
+get_dates <- function(datetime) {
+  d = strsplit(datetime,' ')[[1]][1]
+  d = strsplit(d,'/')[[1]]
+  return(paste(d[1], '/', d[2], sep=""))
+}
+
+dates = lapply(date_time,get_dates)
+idx_change=c()
+last_d = 0
+for (i in 1:length(dates)) {
+  if (dates[[i]] != last_d) {
+    idx_change = append(idx_change, i)
+    last_d = dates[i]
+  }
+}
+axis(1,at=idx_change,labels=dates[idx_change])
+```
+
+```{r}
+atm_arb_test <- atm_data_test$Abs.Pres.Arb
+atm_home_test <- atm_data_test$Abs.Pres.Home
+temp_arb_test <- atm_data_test$Temp.Arb
+temp_home_test <- atm_data_test$Temp.Home
+date_time <- atm_data_test$Date.Time
+
+plot(atm_arb_test,
+     type="l", col="blue", pch=17,
+     main="Test of Arboretum and Home Absolute Pressure", 
+     xlab="Date", ylab="Pressure (psi)", xaxt="n",
+     ylim=c(14.0,14.4),
+)
+
+# add line for home absolute pressure and legend
+lines(atm_home_test, col="red")
+par(new=TRUE)
+plot(temp_arb_test,
+     type="l", col="blue", pch=17,
+     main="Test of Arboretum and Home Absolute Pressure", 
+     axes=FALSE, xlab="", ylab=""
+)
+axis(4,at=pretty(temp_arb_test))
+mtext("Temperature (F)", side = 4)
+lines(temp_home_test, col="red")
+legend("bottomleft",c("Arb Abs Pressure", "Home Abs Pressure"), col=c("blue", "red"), lty =c(1))
+
+axis(1,at=idx_change,labels=dates[idx_change])
+```
+
+
