@@ -1,0 +1,84 @@
+---
+title: "WatershedSlope"
+author: "Hannah Curtis"
+date: "2024-03-04"
+output: html_document
+---
+This file calculates the average slope of each pond watershed in degrees. 
+
+Current ponds: Baxter Park, Door Creek, Commercial Ave, Dobson A5, Dobson A7, Garner Park, Owen Park, Dobson A22, Marion-Dunn, Mad City, Manitou Pond, Dobson A4, Midtown Pond
+
+Need to add remaining ponds
+
+Updated: 3/5/24
+```{r}
+library(sf)
+library(elevatr)
+library(raster)
+
+# Pond watershed outlines
+watershed_outlines <- st_read('/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/WatershedSlope/Watershed_Outlines/ResearchPonds_747504.shp')
+
+# Pond outlines
+#pond_outlines <- st_read('ponds/ponds.shp')
+
+# automatically retrieve elevation data using the 'elevatr' package:
+elevation <- get_elev_raster(watershed_outlines, z = 12)
+
+# plot the DEM
+plot(elevation)
+
+# add the watershed outline:
+plot(watershed_outlines[1],col=NA, add = TRUE)
+
+# add the Mendota outline:
+#plot(Mendota[1], add = TRUE)
+
+```
+
+```{r}
+# Plot the slope
+plot(terrain(elevation, opt="slope", unit="degrees", neighbors=8), main='Slope Plot')
+
+plot(watershed_outlines[1],col=NA, add = TRUE)
+```
+
+```{r}
+polygons <- shapefile('/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/WatershedSlope/Watershed_Outlines/ResearchPonds_747504.shp')
+
+# Calculate slope
+slope <- terrain(elevation, opt="slope", unit="degrees", neighbors=8)
+
+# Create an empty vector to store average slopes
+average_slopes <- numeric(length = nrow(polygons))
+
+# Loop through each polygon
+for (i in 1:nrow(polygons)) {
+  # Extract the polygon
+  poly <- polygons[i, ]
+
+  # Extract raster values within the polygon
+  values <- extract(slope, poly)
+  
+
+  # Check for non-numeric elements
+  non_numeric <- values[sapply(values, function(x) !is.numeric(x))]
+
+  if (length(non_numeric) > 0) {
+    warning("Non-numeric values found. Skipping.")
+    average_slopes[i] <- NA
+  } else {
+    # Calculate average slope
+    average_slopes[i] <- mean(unlist(values), na.rm = TRUE)
+  }
+}
+
+# Add the average slope values to the original polygons data.frame
+polygons$average_slope <- average_slopes
+
+# Display the result
+print(polygons$Watershed_)
+
+print(polygons$average_slope)
+```
+
