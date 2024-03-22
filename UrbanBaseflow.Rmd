@@ -1,0 +1,139 @@
+---
+title: "UrbanBaseflow"
+author: "Hannah Curtis"
+date: "2024-01-29"
+output: html_document
+---
+
+This file calculates the percentage of days that urban baseflow is occurring in each pond. The calculation uses the inflow calculations using the reverse Puls routing method and considers urban baseflow to be inflow greater than 1 cfs. 
+
+Could change the threshold to be bigger?
+
+Should also come back and recalculate with new inflow calculations.
+
+Updated: 3/5/24
+
+Read inflow files:
+```{r}
+# Baxter
+baxter_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Baxter/Baxter_Inflow_Outflow.csv")
+# Commercial Ave
+commave_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/CommAve/CommAve_Inflow_Outlfow.csv")
+# DobsonA4
+doba4_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA4/DobA4_Inflow_Outflow.csv")
+# DobsonA5
+doba5_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA5/DobA5_Inflow_Outflow.csv")
+# DobsonA7
+doba7_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA7/DobA7_Inflow_Outflow.csv")
+# DobsonA8
+doba8_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA8/DobA8_Inflow_Outflow.csv")
+# DobsonA22
+doba22_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA22/DobA22_Inflow_Outflow.csv")
+# Door Creek
+doorcreek_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DoorCreek/DoorCreek_Inflow_Outflow.csv")
+# Elver
+elver_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Elver/Elver_Inflow_Outflow.csv")
+# Garner
+garner_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Garner/Garner_Inflow_Outflow.csv")
+# Greentree
+greentree_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Greentree/Greentree_Inflow_Outflow.csv")
+# Hospital
+hospital_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Hospital/Hospital_Inflow_Outflow.csv")
+# HP Church
+hpchurch_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/HPChurch/HPChurch_Inflow_Outflow.csv")
+# Lot 60
+lot60_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Lot60/Lot60_Inflow_Outflow.csv")
+# Mad City
+madcity_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/MadCity/MadCity_Inflow_Outflow.csv")
+# Manitou
+manitou_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Manitou/Manitou_Inflow_Outflow.csv")
+# Marion Dunn
+mariondunn_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/MarionDunn/MarionDunn_Inflow_Outflow.csv")
+# Midtown
+midtown_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Midtown/Midtown_Inflow_Outlfow.csv")
+# Owen
+owen_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Owen/Owen_Inflow_Outflow.csv")
+# Two Fountains
+twofountains_inf_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/TwoFountains/TwoFountains_Inflow_Outflow.csv")
+```
+
+Urban baseflow function
+```{r}
+
+get_baseflow <- function(inflow_data) {
+  # Convert the DateTime column to Date format
+  inflow_data$Date <- as.Date(inflow_data$DateTime, format = "%m/%d/%y %H:%M")
+  # Extract just the date portion
+  inflow_data$Date <- format(inflow_data$Date, "%m/%d/%y")
+  # Filter dates based on the threshold of inflow
+  filtered_dates <- inflow_data$Date[inflow_data$Inflow.cfs > 1]
+  # Use length to get the number of different values
+  unique_dates <- length(unique(filtered_dates))
+  # Get percentage of days with inflow
+  percentage_inflow <- (unique_dates/(length(unique(inflow_data$Date))))*100
+  # Return urban baseflow
+  return(percentage_inflow)
+}
+
+```
+
+Pond urban baseflows
+```{r}
+# Baxter
+baxter_baseflow <- get_baseflow(baxter_inf_data)
+# Commercial Ave
+commave_baseflow <- get_baseflow(commave_inf_data)
+# DobsonA4
+doba4_baseflow <- get_baseflow(doba4_inf_data)
+# DobsonA5
+doba5_baseflow <- get_baseflow(doba5_inf_data)
+# DobsonA7
+doba7_baseflow <- get_baseflow(doba7_inf_data)
+# DobsonA8
+doba8_baseflow <- get_baseflow(doba8_inf_data)
+# DobsonA22
+doba22_baseflow <- get_baseflow(doba22_inf_data)
+# Door Creek
+doorcreek_baseflow <- get_baseflow(doorcreek_inf_data)
+# Elver
+elver_baseflow <- get_baseflow(elver_inf_data)
+# Garner
+garner_baseflow <- get_baseflow(garner_inf_data)
+# Greentree
+greentree_baseflow <- get_baseflow(greentree_inf_data)
+# Hospital
+hospital_baseflow <- get_baseflow(hospital_inf_data)
+# HP Church
+hpchurch_baseflow <- get_baseflow(hpchurch_inf_data)
+# Lot 60
+lot60_baseflow <- get_baseflow(lot60_inf_data)
+# Mad City
+madcity_baseflow <- get_baseflow(madcity_inf_data)
+# Manitou
+manitou_baseflow <- get_baseflow(manitou_inf_data)
+# Marion Dunn
+mariondunn_baseflow <- get_baseflow(mariondunn_inf_data)
+# Midtown
+midtown_baseflow <- get_baseflow(midtown_inf_data)
+# Owen
+owen_baseflow <- get_baseflow(owen_inf_data)
+# Two Fountains
+twofountains_baseflow <- get_baseflow(twofountains_inf_data)
+```
+
+Save as csv file
+```{r}
+
+# Pond names
+pond_names <- c("Hospital", "Lot60", "Garner", "DobA7", "Owen", "HPChurch", "DobA8", "Midtown", "Elver", "TwoFountains", "Greentree", "MarionDunn", "Manitou", "MadCity", "Baxter", "DobA22", "DobA5", "DobA4", "DoorCreek", "CommAve")
+
+# Urban baseflow values
+urban_baseflow <- c(hospital_baseflow, lot60_baseflow, garner_baseflow, doba7_baseflow, owen_baseflow, hpchurch_baseflow, doba8_baseflow, midtown_baseflow, elver_baseflow, twofountains_baseflow, greentree_baseflow, mariondunn_baseflow, manitou_baseflow, madcity_baseflow, baxter_baseflow, doba22_baseflow, doba5_baseflow, doba4_baseflow, doorcreek_baseflow, commave_baseflow)
+
+# Create urban baseflow data frame for all ponds
+urban_baseflow_df <- data.frame(Pond.Name = pond_names, Urban.Baseflow = urban_baseflow)
+
+# Write csv for urban baseflow in each pond
+write.csv(urban_baseflow_df, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Urban_Baseflow/Urban_Baseflow.csv", row.names=FALSE)
+```
+
