@@ -31,9 +31,6 @@ plot(elevation)
 # add the watershed outline:
 plot(watershed_outlines[1],col=NA, add = TRUE)
 
-# add the Mendota outline:
-#plot(Mendota[1], add = TRUE)
-
 ```
 
 ```{r}
