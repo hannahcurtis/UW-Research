@@ -1,0 +1,761 @@
+---
+title: "Spatial Maps"
+author: "Hannah Curtis"
+date: "2024-01-18"
+output: html_document
+---
+
+This file creates spatial heat maps of different variables at each pond on a map. The variables with maps include ammonia, chloride, dissolved oxygen, nitrate, secchi depth, specific conductance, sulfate, temperature (from YSI), total nitrogen, total phosphorous, total suspended solids, richness, and bounce.
+
+Could add temperature from sensors, other aesthetic and rihness variables, and attenuation.
+
+Updated: 3/5/24
+
+Failed attempts (could be useful in the future if any were on the right track?)
+```{r}
+library(sf)
+library(ggplot2)
+library(leaflet)
+
+# Provide the path to your shapefile
+shapefile_path <- "/Users/hannahcurtis/Downloads/wi_blk10_Census_change_1990_2010_PLA2/wi_blk10_Census_change_1990_2010_PLA2.shp"
+
+# Read the shapefile
+shapefile <- st_read(shapefile_path)
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles() %>%
+  addPolygons(data = shapefile)
+
+# Print the map
+print(my_map)
+```
+
+```{r}
+library(ggplot2)
+library(maps)
+library(mapdata)
+library(raster)
+
+# Example data with latitude, longitude, and color
+data <- data.frame(
+  latitude = c(43.08113195, 43.07849119, 43.06354804, 43.0599518, 43.06867106, 43.0774902, 43.0382138, 43.0373738, 43.03801484, 43.044528, 43.04184272, 43.05201405, 43.04762, 43.0388574, 43.02946538, 43.02661718, 43.07498036, 43.09265805, 43.0966168, 43.10708),  # Example latitude values (Madison, WI)
+  longitude = c(-89.42700781, -89.42924194, -89.4727964, -89.4994612, -89.48837267, -89.515668, -89.5224096, -89.5272514, -89.50464724, -89.499567, -89.49836001, -89.43511254, -89.43781, -89.42464823, -89.3707364, -89.28484903, -89.27972208, -89.26627707, -89.2513815, -89.29788),  # Example longitude values (Madison, WI)
+  color = c("blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue", "blue") , # Different colors for each point
+  label = c("Lot 60", "Hospital", "Garner Park", "Dobson A7", "Owen Park", "High Point Church", "Dobson A8", "Midtown Park", "Elver Park", "Two Fountains", "Greentree Park", "Marion-Dunn", "Manitou", "Mad         City", "Baxter Park", "Dobson A22", "Dobson A5", "Dobson A4", "Door Creek", "Commercial Ave")
+)
+
+# Create a map with ggplot2 and zoom in on Madison, WI
+# world <- map_data("world")
+# 
+# ggplot() +
+#   geom_polygon(data = world, aes(x = long, y = lat, group = group), fill = "lightgray") +
+#   geom_point(data = data, aes(x = longitude, y = latitude, color = color), size = 3) +
+#   scale_color_identity() +
+#   coord_fixed(ratio = 1, xlim = c(-89.6, -89.2), ylim = c(42.95, 43.2)) +  # Adjust xlim and ylim for zooming in
+#   theme_minimal()
+
+
+# Replace "path/to/your/topographic/raster.tif" with the path to your raster file
+raster_file <- "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/WI_Madison_503660_1991_100000_geo.tif"
+
+# Read the raster file
+topo_raster <- raster(raster_file)
+
+# Convert raster to data frame
+raster_df <- as.data.frame(raster::rasterToPoints(topo_raster))
+
+# Create a map with ggplot2 and zoom in on a specific region
+ggplot(raster_df) +
+  geom_raster(aes(x = x, y = y, fill = WI_Madison_503660_1991_100000_geo_1)) +  # Replace with your actual layer name
+  scale_fill_gradient(low = "white", high = "brown") +
+  coord_fixed(ratio = 1) +  # Adjust ratio as needed
+  theme_minimal()
+
+```
+
+```{r}
+library(ggmap)
+
+# Replace "your_api_key" with your actual API key
+register_google(key = "your_api_key")
+
+# Get the map info
+map <- get_googlemap("Montpellier, France", zoom = 8, maptype = "terrain")
+
+# Plot it
+ggmap(map) +
+  theme_minimal() +
+  ggtitle("terrain") +
+  theme(
+    plot.title = element_text(colour = "orange"),
+    panel.border = element_rect(colour = "grey", fill = NA, size = 2)
+  )
+```
+
+```{r}
+# Read the raster file
+topo_raster <- raster("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/WI_Madison_503660_1991_100000_geo.tif")
+
+# Convert raster to data frame
+raster_df <- as.data.frame(raster::rasterToPoints(topo_raster))
+
+# Print column names
+print(names(raster_df))
+
+# View the first few rows of the data frame
+head(raster_df)
+```
+
+```{r}
+library(sf)
+
+# Read shapefile
+shape_data <- st_read("/Users/hannahcurtis/Downloads/Stormwater_Impervious_Areas/Stormwater_Impervious_Areas.shp")
+
+
+plot(shape_data, main = "Map")
+```
+
+```{r}
+library(jpeg)
+library(ggplot2)
+
+map <- readJPEG("/Users/hannahcurtis/Downloads/Madison-Road-Map.jpg")
+
+# Plot the RGB image
+plot(map)
+# plot(1:1159, 1:1159, type = "n", xlab = "", ylab = "", xlim=c(300,1159))
+# rasterImage(map, 1, 1, 1500, 1159)
+```
+
+Actual Maps
+
+Ammonia
+```{r}
+# load leaflet library 
+library(leaflet) 
+library(webshot)
+library(htmlwidgets)
+  
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(92.609625, 66.692625, 45.22825, 101.079, 16.478125, 28.572125, 14.525625, 21.787, 46.137125, 83.25975, 89.519875, 152.29425, 63.303, 92.69075, 147.3645, 91.70475, 67.893375, 15.57925, 45.50925, 39.942625)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Avg Ammonia (ug/L)",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "ammonia_map.png", cliprect = "viewport")
+```
+
+Chloride
+```{r}
+
+# load leaflet library 
+library(leaflet) 
+library(webshot)
+library(htmlwidgets)
+  
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(207.77835, 85.32650, 144.70427, 49.33224, 34.19063, 50.42339, 14.59083, 24.17945, 70.20994, 67.92615, 79.85977, 38.20219, 78.98981, 68.25674, 14.40198, 12.25736, 39.68091, 17.87927, 40.39244, 12.32787)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Avg Chloride (mg/L)",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "chloride_map.png", cliprect = "viewport")
+```
+
+Dissolved Oxygen
+```{r}
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(1.47000, 4.44250, 3.49250, 7.43250, 3.54500, 4.96375, 4.00875, 7.17125, 4.61500, 8.83250, 4.49125, 6.40000, 9.92000, 5.72375, 5.77125, 6.90000, 13.87000, 11.53000, 8.43000, 11.56000)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Avg DO (mg/L)",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "DO_map.png", cliprect = "viewport")
+```
+
+Nitrate
+```{r}
+# load leaflet library 
+library(leaflet) 
+library(webshot)
+library(htmlwidgets)
+  
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(21.95525, 155.7655, 47.12475, 98.664625, 16.21325, 52.441125, 27.654375, 14.27075, 29.032875, 9.91725, 71.842125, 42.465375, 40.108125, 55.46225, 38.38525, 72.68525, 21.48325, 1.8325, 9.0675, 11.010625)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Avg Nitrate (ug/L)",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "nitrate_map.png", cliprect = "viewport")
+```
+
+Secchi Depth
+```{r}
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(42.6875, 59.7500, 27.5250, 24.0000, 35.6500, 46.9250, 43.3750, 53.6250, 43.3125, 56.4375, 37.5000, 36.1750, 21.6875, 34.9500, 30.3375, 34.1750, 9.5625, 21.3750, 47.1000, 22.9250)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Avg Secchi Depth (cm)",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "Secchi_map.png", cliprect = "viewport")
+```
+
+Specific Conductance
+```{r}
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(474.100, 656.120, 751.860, 326.420, 247.660, 140.440, 145.560, 76.750, 383.380, 347.040, 405.660, 85.360, 526.540, 133.140, 117.000, 130.550, 146.150, 165.560, 266.480, 90.546)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Avg SPC",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "SPC_map.png", cliprect = "viewport")
+```
+
+Sulfate
+```{r}
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(4.080800, 10.465925, 2.731438, 4.011838, 7.813544, 2.647844, 1.379738, 1.808775, 4.236813, 1.266750, 4.467937, 1.988575, 6.241062, 6.932175, 1.864613, 10.547019, 1.954725, 1.790325, 6.397775, 1.782350)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Avg Sulfate (mg/L)",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "sulfate_map.png", cliprect = "viewport")
+```
+
+Temperature
+```{r}
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(19.91250, 21.21429, 21.27500, 21.46250, 21.65714, 21.30000, 21.60000, 22.95000, 22.18750, 24.28750, 23.82500, 25.12500, 25.12500, 25.06250, 26.68750, 26.85000, 26.77500, 26.35000, 26.21250, 25.90000)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Avg Temperature (C)",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "temp_map.png", cliprect = "viewport")
+```
+
+Total Nitrogen
+```{r}
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(1303.6831, 544.6941, 1077.6535, 632.3016, 1527.6194, 513.3200, 620.2096, 693.9916, 539.2664, 678.0339, 711.1176, 952.7874, 1436.5632, 1167.5756, 1652.8053, 1599.1759, 2155.1586, 694.2777, 1119.5599, 1478.5155)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Avg TN (ug/L)",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "TN_map.png", cliprect = "viewport")
+```
+
+Total Phosphorous
+```{r}
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(131.65375, 30.96312, 138.21525, 60.18650, 232.06238, 117.10263, 81.39037, 82.98538, 92.30213, 73.52738, 131.90062, 164.91887, 185.41163, 145.95250, 398.37000, 253.59750, 136.67625, 89.60675, 145.50475, 202.85850)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Avg TP (ug/L)",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "TP_map.png", cliprect = "viewport")
+```
+
+Total Suspended Solids
+```{r}
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(64.784375, 7.768750, 26.721875, 22.331250, 19.811012, 9.966667, 45.587500, 24.105000, 21.282459, 9.703125, 40.656250, 39.987500, 30.895994, 10.393750, 62.793750, 17.193750, 28.005242, 26.199510, 27.753912, 27.729281)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Avg TSS (mg/L)",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "TSS_map.png", cliprect = "viewport")
+```
+
+Richness
+```{r}
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(29, 50, 24, 23, 28, 38, 23, 29, 31, 27, 34, 27, 29, 26, 38, 22, 19, 31, 45, 27)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Species Richness",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "richness_map.png", cliprect = "viewport")
+```
+
+Bounce
+```{r}
+my_data <- data.frame(
+  lat = c(43.0811, 43.0785, 43.0635, 43.0599, 43.0687, 43.0775, 43.0382, 43.0374, 43.0380, 43.0445, 43.0418, 43.0520, 43.0476, 43.0389, 43.0295, 43.0266, 43.0750, 43.0927, 43.0966, 43.1071),
+  lon = c(-89.4270, -89.4292, -89.4728, -89.4995, -89.4884, -89.5157, -89.5224, -89.5273, -89.5046, -89.4996, -89.4984, -89.4351, -89.4378, -89.4246, -89.3707, -89.2848, -89.2797, -89.2663, -89.2514, -89.2979),
+  value = c(1.3159187, 0.8809523, 1.9672685, 2.0760119, 2.6351491, 3.1325106, 1.9654701, 1.3247419, 2.2928970, 0.6734912, 2.2083635, 3.4292906, 2.5903646, 1.8474522, 1.7557422, 2.7115997, 1.2826354, 1.3584409, 0.7349667, 1.9438863)
+)
+
+# Create a continuous palette function
+pal <- colorNumeric(
+  palette = "viridis",
+  domain = my_data$value)
+
+# Popup text (you can customize this accordingly)
+popup_text <- paste("Marker", 1:length(my_data$lat))
+
+# Create a leaflet map
+my_map <- leaflet() %>%
+  addTiles()
+
+# Add circle markers to the map
+my_map <- addCircleMarkers(
+  my_map,
+  lng = my_data$lon,
+  lat = my_data$lat,
+  radius = 5,  # Set the radius of the dots (adjust as needed)
+  fillOpacity = 0.7,  # Set the fill opacity
+  color = pal(my_data$value),  # Set the border color
+  fillColor = pal(my_data$value),  # Set the fill color
+  popup = popup_text
+) %>%
+  addLegend(
+    pal = pal,
+    values = my_data$value,
+    title = "Avg Bounce (ft)",
+    opacity = 0.7
+) %>%
+  setView(lng = -89.390973, lat = 43.067398, zoom = 11)  # Set your desired coordinates and zoom level
+
+# Display the map
+my_map
+
+# Save a portion of the map as an image
+htmlwidgets::saveWidget(my_map, file = "my_map.html", selfcontained = FALSE)
+webshot::webshot("my_map.html", file = "bounce_map.png", cliprect = "viewport")
+```
+
