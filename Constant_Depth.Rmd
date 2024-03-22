@@ -1,0 +1,336 @@
+---
+title: "Constant_Depth"
+author: "Hannah Curtis"
+date: "2024-01-29"
+output: html_document
+---
+This file calculates various hydrologic variables associated with the percentage of time the water level is at or between certain locations. The variables include median water level, percentage of time water level is within 2 inches of the mode, percentage of time water level is within 6 inches of the mode, percentage of time water level is within 6 inches of the outlet, percentage of time water level is below the outlet, the range of water levels between the 25th and 75th percentile, the range of water levels between the 10th and 90th percentile, and the skewness of the water level pdfs.
+
+Updated: 3/5/24
+
+Read in water level files
+```{r}
+baxter_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Baxter/Baxter_Water_Level.csv")
+commave_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/CommAve/CommAve_Water_Level.csv")
+doba4_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA4/DobA4_Water_Level.csv")
+doba5_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA5/DobA5_Water_Level.csv")
+doba7_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA7/DobA7_Water_Level.csv")
+doba8_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA8/DobA8_Water_Level.csv")
+doba22_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DobA22/DobA22_Water_Level.csv")
+doorcreek_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/DoorCreek/DoorCreek_Water_Level.csv")
+elver_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Elver/Elver_Water_Level.csv")
+garner_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Garner/Garner_Water_Level.csv")
+greentree_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Greentree/Greentree_Water_Level.csv")
+hospital_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Hospital/Hospital_Water_Level.csv")
+hpchurch_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/HPChurch/HPChurch_Water_Level.csv")
+lot60_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Lot60/Lot60_Water_Level.csv")
+madcity_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/MadCity/MadCity_Water_Level.csv")
+manitou_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Manitou/Manitou_Water_Level.csv")
+mariondunn_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/MarionDunn/MarionDunn_Water_Level.csv")
+midtown_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Midtown/Midtown_Water_Level.csv")
+owen_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/Owen/Owen_Water_Level.csv")
+twofountains_wl <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Water_Level/TwoFountains/TwoFountains_Water_Level.csv")
+```
+
+Median water level
+```{r}
+# Median water level
+baxter_med <- median(baxter_wl$Depth.ft)
+commave_med <- median(commave_wl$Depth.ft)
+doba4_med <- median(doba4_wl$Depth.ft)
+doba5_med <- median(doba5_wl$Depth.ft)
+doba7_med <- median(doba7_wl$Depth.ft)
+doba8_med <- median(doba8_wl$Depth.ft)
+doba22_med <- median(doba22_wl$Depth.ft)
+doorcreek_med <- median(doorcreek_wl$Depth.ft)
+elver_med <- median(elver_wl$Depth.ft)
+garner_med <- median(garner_wl$Depth.ft)
+greentree_med <- median(greentree_wl$Depth.ft)
+hospital_med <- median(hospital_wl$Depth.ft)
+hpchurch_med <- median(hpchurch_wl$Depth.ft)
+lot60_med <- median(lot60_wl$Depth.ft)
+madcity_med <- median(madcity_wl$Depth.ft)
+manitou_med <- median(manitou_wl$Depth.ft)
+mariondunn_med <- median(mariondunn_wl$Depth.ft)
+midtown_med <- median(midtown_wl$Depth.ft)
+owen_med <- median(owen_wl$Depth.ft)
+twofountains_med <- median(twofountains_wl$Depth.ft)
+
+# Save median water level variable
+median_wl <- c(hospital_med,lot60_med,garner_med,doba7_med,owen_med,hpchurch_med,doba8_med,midtown_med,elver_med,twofountains_med,greentree_med,mariondunn_med,manitou_med,madcity_med,baxter_med,doba22_med,doba5_med,doba4_med,doorcreek_med,commave_med)
+
+```
+
+Percentage of days water level is within 2 inches of mode in each pond
+```{r}
+# Function for percentage of days water level is roughly constant
+get_const_wl <- function(pond_wl, mode_wl) {
+  # one inch below most common water level
+  wl_min <- mode_wl - 1/12
+  # one inch above below most common water level
+  wl_max <- mode_wl + 1/12
+  # get the water levels within 2 inches of the most common water level
+  filtered_wl <- pond_wl[pond_wl >= wl_min & pond_wl <= wl_max]
+  # find percentage of days water level is within this range
+  percentage_const_wl <- (length(filtered_wl)/length(pond_wl))*100
+  return(percentage_const_wl)
+}
+
+# Apply function to each pond
+baxter_const_wl <- get_const_wl(baxter_wl$Depth.ft, 0.225)
+commave_const_wl <- get_const_wl(commave_wl$Depth.ft, 1.175)
+doba4_const_wl <- get_const_wl(doba4_wl$Depth.ft, 1.725)
+doba5_const_wl <- get_const_wl(doba5_wl$Depth.ft, 1.77)
+doba7_const_wl <- get_const_wl(doba7_wl$Depth.ft, 1.075)
+doba8_const_wl <- get_const_wl(doba8_wl$Depth.ft, 2.025)
+doba22_const_wl <- get_const_wl(doba22_wl$Depth.ft, 0.125)
+doorcreek_const_wl <- get_const_wl(doorcreek_wl$Depth.ft, 1.43)
+elver_const_wl <- get_const_wl(elver_wl$Depth.ft, 1.775)
+garner_const_wl <- get_const_wl(garner_wl$Depth.ft, 1.475)
+greentree_const_wl <- get_const_wl(greentree_wl$Depth.ft, 1.375)
+hospital_const_wl <- get_const_wl(hospital_wl$Depth.ft, 1.125)
+hpchurch_const_wl <- get_const_wl(hpchurch_wl$Depth.ft, 1.425)
+lot60_const_wl <- get_const_wl(lot60_wl$Depth.ft, 1.37)
+madcity_const_wl <- get_const_wl(madcity_wl$Depth.ft, 1.775)
+manitou_const_wl <- get_const_wl(manitou_wl$Depth.ft, 0.75)
+mariondunn_const_wl <- get_const_wl(mariondunn_wl$Depth.ft, 0.525)
+midtown_const_wl <- get_const_wl(midtown_wl$Depth.ft, 0.925)
+owen_const_wl <- get_const_wl(owen_wl$Depth.ft, 1.625)
+twofountains_const_wl <- get_const_wl(twofountains_wl$Depth.ft, 1.47)
+
+# Save percentage of days water level is roughly constant as variable
+constant_wl <- c(hospital_const_wl,lot60_const_wl,garner_const_wl,doba7_const_wl,owen_const_wl,hpchurch_const_wl,doba8_const_wl,midtown_const_wl,elver_const_wl,twofountains_const_wl,greentree_const_wl,mariondunn_const_wl,manitou_const_wl,madcity_const_wl,baxter_const_wl,doba22_const_wl,doba5_const_wl,doba4_const_wl,doorcreek_const_wl,commave_const_wl)
+```
+
+Percentage of days water level is within 6 inches of mode in each pond
+```{r}
+# Function for percentage of days water level is roughly constant
+get_const_wl_6in <- function(pond_wl, mode_wl) {
+  # one inch below most common water level
+  wl_min <- mode_wl - 3/12
+  # one inch above below most common water level
+  wl_max <- mode_wl + 3/12
+  # get the water levels within 6 inches of the most common water level
+  filtered_wl <- pond_wl[pond_wl >= wl_min & pond_wl <= wl_max]
+  # find percentage of days water level is within this range
+  percentage_const_wl <- (length(filtered_wl)/length(pond_wl))*100
+  return(percentage_const_wl)
+}
+
+# Apply function to each pond
+baxter_const_wl_6in <- get_const_wl_6in(baxter_wl$Depth.ft, 0.225)
+commave_const_wl_6in <- get_const_wl_6in(commave_wl$Depth.ft, 1.175)
+doba4_const_wl_6in <- get_const_wl_6in(doba4_wl$Depth.ft, 1.725)
+doba5_const_wl_6in <- get_const_wl_6in(doba5_wl$Depth.ft, 1.77)
+doba7_const_wl_6in <- get_const_wl_6in(doba7_wl$Depth.ft, 1.075)
+doba8_const_wl_6in <- get_const_wl_6in(doba8_wl$Depth.ft, 2.025)
+doba22_const_wl_6in <- get_const_wl_6in(doba22_wl$Depth.ft, 0.125)
+doorcreek_const_wl_6in <- get_const_wl_6in(doorcreek_wl$Depth.ft, 1.43)
+elver_const_wl_6in <- get_const_wl_6in(elver_wl$Depth.ft, 1.775)
+garner_const_wl_6in <- get_const_wl_6in(garner_wl$Depth.ft, 1.475)
+greentree_const_wl_6in <- get_const_wl_6in(greentree_wl$Depth.ft, 1.375)
+hospital_const_wl_6in <- get_const_wl_6in(hospital_wl$Depth.ft, 1.125)
+hpchurch_const_wl_6in <- get_const_wl_6in(hpchurch_wl$Depth.ft, 1.425)
+lot60_const_wl_6in <- get_const_wl_6in(lot60_wl$Depth.ft, 1.37)
+madcity_const_wl_6in <- get_const_wl_6in(madcity_wl$Depth.ft, 1.775)
+manitou_const_wl_6in <- get_const_wl_6in(manitou_wl$Depth.ft, 0.75)
+mariondunn_const_wl_6in <- get_const_wl_6in(mariondunn_wl$Depth.ft, 0.525)
+midtown_const_wl_6in <- get_const_wl_6in(midtown_wl$Depth.ft, 0.925)
+owen_const_wl_6in <- get_const_wl_6in(owen_wl$Depth.ft, 1.625)
+twofountains_const_wl_6in <- get_const_wl_6in(twofountains_wl$Depth.ft, 1.47)
+
+# Save percentage of days water level is roughly constant as variable
+constant_wl_6in <- c(hospital_const_wl_6in,lot60_const_wl_6in,garner_const_wl_6in,doba7_const_wl_6in,owen_const_wl_6in,hpchurch_const_wl_6in,doba8_const_wl_6in,midtown_const_wl_6in,elver_const_wl_6in,twofountains_const_wl_6in,greentree_const_wl_6in,mariondunn_const_wl_6in,manitou_const_wl_6in,madcity_const_wl_6in,baxter_const_wl_6in,doba22_const_wl_6in,doba5_const_wl_6in,doba4_const_wl_6in,doorcreek_const_wl_6in,commave_const_wl_6in)
+```
+
+Percentage of days water level is within 6 inches of outlet in each pond
+```{r}
+# Function for percentage of days water level is within 6in of the outlet
+get_outlet_wl <- function(pond_wl, outlet_wl) {
+  # one inch below most common water level
+  wl_min <- outlet_wl - 3/12
+  # one inch above below most common water level
+  wl_max <- outlet_wl + 3/12
+  # get the water levels within 6 inches of outlet
+  filtered_wl <- pond_wl[pond_wl >= wl_min & pond_wl <= wl_max]
+  # find percentage of days water level is within this range
+  percentage_const_wl <- (length(filtered_wl)/length(pond_wl))*100
+  return(percentage_const_wl)
+}
+
+# Apply function to each pond
+baxter_outlet_wl <- get_outlet_wl(baxter_wl$Depth.ft, 11/12)
+commave_outlet_wl <- get_outlet_wl(commave_wl$Depth.ft, 14.5/12)
+doba4_outlet_wl <- get_outlet_wl(doba4_wl$Depth.ft, 14.5/12)
+doba5_outlet_wl <- get_outlet_wl(doba5_wl$Depth.ft, 15.5/12)
+doba7_outlet_wl <- get_outlet_wl(doba7_wl$Depth.ft, 12/12)
+doba8_outlet_wl <- get_outlet_wl(doba8_wl$Depth.ft, 42/12)
+doba22_outlet_wl <- get_outlet_wl(doba22_wl$Depth.ft, 2)
+doorcreek_outlet_wl <- get_outlet_wl(doorcreek_wl$Depth.ft, ((17/12)-(4/12)))
+elver_outlet_wl <- get_outlet_wl(elver_wl$Depth.ft, 20.5/12)
+garner_outlet_wl <- get_outlet_wl(garner_wl$Depth.ft, 14/12)
+greentree_outlet_wl <- get_outlet_wl(greentree_wl$Depth.ft, 14.5/12)
+hospital_outlet_wl <- get_outlet_wl(hospital_wl$Depth.ft, 18/12)
+hpchurch_outlet_wl <- get_outlet_wl(hpchurch_wl$Depth.ft, 18/12)
+lot60_outlet_wl <- get_outlet_wl(lot60_wl$Depth.ft, 3.5/12)
+madcity_outlet_wl <- get_outlet_wl(madcity_wl$Depth.ft, 10/12)
+manitou_outlet_wl <- get_outlet_wl(manitou_wl$Depth.ft, 8.5/12)
+mariondunn_outlet_wl <- get_outlet_wl(mariondunn_wl$Depth.ft, 7/12)
+midtown_outlet_wl <- get_outlet_wl(midtown_wl$Depth.ft, 27.25/12)
+owen_outlet_wl <- get_outlet_wl(owen_wl$Depth.ft, 2.5)
+twofountains_outlet_wl <- get_outlet_wl(twofountains_wl$Depth.ft, 16/12)
+
+# Save percentage of days water level is within 6in of outlet as variable
+outlet_wl <- c(hospital_outlet_wl,lot60_outlet_wl,garner_outlet_wl,doba7_outlet_wl,owen_outlet_wl,hpchurch_outlet_wl,doba8_outlet_wl,midtown_outlet_wl,elver_outlet_wl,twofountains_outlet_wl,greentree_outlet_wl,mariondunn_outlet_wl,manitou_outlet_wl,madcity_outlet_wl,baxter_outlet_wl,doba22_outlet_wl,doba5_outlet_wl,doba4_outlet_wl,doorcreek_outlet_wl,commave_outlet_wl)
+```
+
+Percentage of days water level is above/below outlet in each pond
+```{r}
+# Function for percentage of days water level is below outlet
+get_below_outlet_wl <- function(pond_wl, outlet_wl) {
+  # get the water levels below the outlet location
+  filtered_wl <- pond_wl[pond_wl < outlet_wl]
+  # find percentage of days water level is within this range
+  percentage_below_outlet_wl <- (length(filtered_wl)/length(pond_wl))*100
+  return(percentage_below_outlet_wl)
+}
+
+# Apply function to each pond
+baxter_below_outlet_wl <- get_below_outlet_wl(baxter_wl$Depth.ft, 11/12)
+commave_below_outlet_wl <- get_below_outlet_wl(commave_wl$Depth.ft, 14.5/12)
+doba4_below_outlet_wl <- get_below_outlet_wl(doba4_wl$Depth.ft, 14.5/12)
+doba5_below_outlet_wl <- get_below_outlet_wl(doba5_wl$Depth.ft, 15.5/12)
+doba7_below_outlet_wl <- get_below_outlet_wl(doba7_wl$Depth.ft, 12/12)
+doba8_below_outlet_wl <- get_below_outlet_wl(doba8_wl$Depth.ft, 42/12)
+doba22_below_outlet_wl <- get_below_outlet_wl(doba22_wl$Depth.ft, 2)
+doorcreek_below_outlet_wl <- get_below_outlet_wl(doorcreek_wl$Depth.ft, ((17/12)-(4/12)))
+elver_below_outlet_wl <- get_below_outlet_wl(elver_wl$Depth.ft, 20.5/12)
+garner_below_outlet_wl <- get_below_outlet_wl(garner_wl$Depth.ft, 14/12)
+greentree_below_outlet_wl <- get_below_outlet_wl(greentree_wl$Depth.ft, 14.5/12)
+hospital_below_outlet_wl <- get_below_outlet_wl(hospital_wl$Depth.ft, 18/12)
+hpchurch_below_outlet_wl <- get_below_outlet_wl(hpchurch_wl$Depth.ft, 18/12)
+lot60_below_outlet_wl <- get_below_outlet_wl(lot60_wl$Depth.ft, 3.5/12)
+madcity_below_outlet_wl <- get_below_outlet_wl(madcity_wl$Depth.ft, 10/12)
+manitou_below_outlet_wl <- get_below_outlet_wl(manitou_wl$Depth.ft, 8.5/12)
+mariondunn_below_outlet_wl <- get_below_outlet_wl(mariondunn_wl$Depth.ft, 7/12)
+midtown_below_outlet_wl <- get_below_outlet_wl(midtown_wl$Depth.ft, 27.25/12)
+owen_below_outlet_wl <- get_below_outlet_wl(owen_wl$Depth.ft, 2.5)
+twofountains_below_outlet_wl <- get_below_outlet_wl(twofountains_wl$Depth.ft, 16/12)
+
+# Save percentage of days water level is below outlet as variable
+below_outlet_wl <- c(hospital_below_outlet_wl,lot60_below_outlet_wl,garner_below_outlet_wl,doba7_below_outlet_wl,owen_below_outlet_wl,hpchurch_below_outlet_wl,doba8_below_outlet_wl,midtown_below_outlet_wl,elver_below_outlet_wl,twofountains_below_outlet_wl,greentree_below_outlet_wl,mariondunn_below_outlet_wl,manitou_below_outlet_wl,madcity_below_outlet_wl,baxter_below_outlet_wl,doba22_below_outlet_wl,doba5_below_outlet_wl,doba4_below_outlet_wl,doorcreek_below_outlet_wl,commave_below_outlet_wl)
+```
+
+Range of water levels that encompasses 50% of data in each pond
+```{r}
+# Function for water levels between 25th and 75th percentile
+get_wl_range_25_75 <- function(pond_wl) {
+  quantile_25 <- quantile(pond_wl, 0.25)
+  quantile_75 <- quantile(pond_wl, 0.75)
+  wl_range <- quantile_75 - quantile_25
+  return(wl_range)
+}
+
+# Apply function to each pond
+baxter_range_25_75 <- get_wl_range_25_75(baxter_wl$Depth.ft)
+commave_range_25_75 <- get_wl_range_25_75(commave_wl$Depth.ft)
+doba4_range_25_75 <- get_wl_range_25_75(doba4_wl$Depth.ft)
+doba5_range_25_75 <- get_wl_range_25_75(doba5_wl$Depth.ft)
+doba7_range_25_75 <- get_wl_range_25_75(doba7_wl$Depth.ft)
+doba8_range_25_75 <- get_wl_range_25_75(doba8_wl$Depth.ft)
+doba22_range_25_75 <- get_wl_range_25_75(doba22_wl$Depth.ft)
+doorcreek_range_25_75 <- get_wl_range_25_75(doorcreek_wl$Depth.ft)
+elver_range_25_75 <- get_wl_range_25_75(elver_wl$Depth.ft)
+garner_range_25_75 <- get_wl_range_25_75(garner_wl$Depth.ft)
+greentree_range_25_75 <- get_wl_range_25_75(greentree_wl$Depth.ft)
+hospital_range_25_75 <- get_wl_range_25_75(hospital_wl$Depth.ft)
+hpchurch_range_25_75 <- get_wl_range_25_75(hpchurch_wl$Depth.ft)
+lot60_range_25_75 <- get_wl_range_25_75(lot60_wl$Depth.ft)
+madcity_range_25_75 <- get_wl_range_25_75(madcity_wl$Depth.ft)
+manitou_range_25_75 <- get_wl_range_25_75(na.omit(manitou_wl$Depth.ft))
+mariondunn_range_25_75 <- get_wl_range_25_75(mariondunn_wl$Depth.ft)
+midtown_range_25_75 <- get_wl_range_25_75(midtown_wl$Depth.ft)
+owen_range_25_75 <- get_wl_range_25_75(owen_wl$Depth.ft)
+twofountains_range_25_75 <- get_wl_range_25_75(twofountains_wl$Depth.ft)
+
+# Save water level range between 25 and 75 quantile as variable
+wl_range_25_75 <- c(hospital_range_25_75,lot60_range_25_75,garner_range_25_75,doba7_range_25_75,owen_range_25_75,hpchurch_range_25_75,doba8_range_25_75,midtown_range_25_75,elver_range_25_75,twofountains_range_25_75,greentree_range_25_75,mariondunn_range_25_75,manitou_range_25_75,madcity_range_25_75,baxter_range_25_75,doba22_range_25_75,doba5_range_25_75,doba4_range_25_75,doorcreek_range_25_75,commave_range_25_75)
+```
+
+Range of water levels that encompasses 10 to 90% of data in each pond
+```{r}
+# Function for water levels between 10th and 90th percentile
+get_wl_range_10_90 <- function(pond_wl) {
+  quantile_10 <- quantile(pond_wl, 0.1)
+  quantile_90 <- quantile(pond_wl, 0.9)
+  wl_range <- quantile_90 - quantile_10
+  return(wl_range)
+}
+
+# Apply function to each pond
+baxter_range_10_90 <- get_wl_range_10_90(baxter_wl$Depth.ft)
+commave_range_10_90 <- get_wl_range_10_90(commave_wl$Depth.ft)
+doba4_range_10_90 <- get_wl_range_10_90(doba4_wl$Depth.ft)
+doba5_range_10_90 <- get_wl_range_10_90(doba5_wl$Depth.ft)
+doba7_range_10_90 <- get_wl_range_10_90(doba7_wl$Depth.ft)
+doba8_range_10_90 <- get_wl_range_10_90(doba8_wl$Depth.ft)
+doba22_range_10_90 <- get_wl_range_10_90(doba22_wl$Depth.ft)
+doorcreek_range_10_90 <- get_wl_range_10_90(doorcreek_wl$Depth.ft)
+elver_range_10_90 <- get_wl_range_10_90(elver_wl$Depth.ft)
+garner_range_10_90 <- get_wl_range_10_90(garner_wl$Depth.ft)
+greentree_range_10_90 <- get_wl_range_10_90(greentree_wl$Depth.ft)
+hospital_range_10_90 <- get_wl_range_10_90(hospital_wl$Depth.ft)
+hpchurch_range_10_90 <- get_wl_range_10_90(hpchurch_wl$Depth.ft)
+lot60_range_10_90 <- get_wl_range_10_90(lot60_wl$Depth.ft)
+madcity_range_10_90 <- get_wl_range_10_90(madcity_wl$Depth.ft)
+manitou_range_10_90 <- get_wl_range_10_90(na.omit(manitou_wl$Depth.ft))
+mariondunn_range_10_90 <- get_wl_range_10_90(mariondunn_wl$Depth.ft)
+midtown_range_10_90 <- get_wl_range_10_90(midtown_wl$Depth.ft)
+owen_range_10_90 <- get_wl_range_10_90(owen_wl$Depth.ft)
+twofountains_range_10_90 <- get_wl_range_10_90(twofountains_wl$Depth.ft)
+
+# Save water level range between 10 and 90 quantile as variable
+wl_range_10_90 <- c(hospital_range_10_90,lot60_range_10_90,garner_range_10_90,doba7_range_10_90,owen_range_10_90,hpchurch_range_10_90,doba8_range_10_90,midtown_range_10_90,elver_range_10_90,twofountains_range_10_90,greentree_range_10_90,mariondunn_range_10_90,manitou_range_10_90,madcity_range_10_90,baxter_range_10_90,doba22_range_10_90,doba5_range_10_90,doba4_range_10_90,doorcreek_range_10_90,commave_range_10_90)
+```
+
+Skewness of pdfs
+```{r}
+library(moments)
+
+# Find skewness for each pond
+baxter_skew <- skewness(baxter_wl$Depth.ft)
+commave_skew <- skewness(commave_wl$Depth.ft)
+doba4_skew <- skewness(doba4_wl$Depth.ft)
+doba5_skew <- skewness(doba5_wl$Depth.ft)
+doba7_skew <- skewness(doba7_wl$Depth.ft)
+doba8_skew <- skewness(doba8_wl$Depth.ft)
+doba22_skew <- skewness(doba22_wl$Depth.ft)
+doorcreek_skew <- skewness(doorcreek_wl$Depth.ft)
+elver_skew <- skewness(elver_wl$Depth.ft)
+garner_skew <- skewness(garner_wl$Depth.ft)
+greentree_skew <- skewness(greentree_wl$Depth.ft)
+hospital_skew <- skewness(hospital_wl$Depth.ft)
+hpchurch_skew <- skewness(hpchurch_wl$Depth.ft)
+lot60_skew <- skewness(lot60_wl$Depth.ft)
+madcity_skew <- skewness(madcity_wl$Depth.ft)
+manitou_skew <- skewness(manitou_wl$Depth.ft)
+mariondunn_skew <- skewness(mariondunn_wl$Depth.ft)
+midtown_skew <- skewness(midtown_wl$Depth.ft)
+owen_skew <- skewness(owen_wl$Depth.ft)
+twofountains_skew <- skewness(twofountains_wl$Depth.ft)
+
+# Save skewness as variable
+pond_skewness <- c(hospital_skew,lot60_skew,garner_skew,doba7_skew,owen_skew,hpchurch_skew,doba8_skew,midtown_skew,elver_skew,twofountains_skew,greentree_skew,mariondunn_skew,manitou_skew,madcity_skew,baxter_skew,doba22_skew,doba5_skew,doba4_skew,doorcreek_skew,commave_skew)
+```
+
+Save all variables in csv file
+```{r}
+# Pond names
+pond_names <- c("Hospital", "Lot60", "Garner", "DobA7", "Owen", "HPChurch", "DobA8", "Midtown", "Elver", "TwoFountains", "Greentree", "MarionDunn", "Manitou", "MadCity", "Baxter", "DobA22", "DobA5", "DobA4", "DoorCreek", "CommAve")
+
+# Create a data frame for all ponds
+constant_depth_df <- data.frame(Pond.Names = pond_names, Median.Water.Level = median_wl, Constant.Water.Level = constant_wl, Contant.Water.Level.6in = constant_wl_6in, Outlet.Water.Level = outlet_wl, Below.Outlet.Water.Level = below_outlet_wl, Water.Level.25.75.Quantile = wl_range_25_75, Water.Level.10.90.Quantile = wl_range_10_90, Pond.Skewness = pond_skewness)
+
+# Write csv for data frame
+write.csv(constant_depth_df, "/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Constant_Depth/Uniform_Depth.csv")
+```
