@@ -1,0 +1,819 @@
+---
+title: "Bounce Analysis"
+author: "Hannah Curtis"
+date: "2024-01-16"
+output: html_document
+---
+
+This file plots linear regressions of hydrologic, engineering design, and watershed variables against the bounce both using the average value for each pond, and the value per each storm with with collected information for variables including the percent change in all water quality parameters (includes 3 storms when sampling occurred), gradual decline rate in water level, and temperature variance (should later add attenuation by storm). 
+
+Predictor variables:
+Hydrologic variables: median water level, percentage of time water level is constant, percentage of time water level is constant (within 6 inches), percentage of time water level is within 6 inches of the outlet, percentage of time water level is below the outlet opening, percentage of time water level is between the 25 and 75 percentiles, percentage of time water level is between the 10 and 90 percentiles, skewness of water level pdfs, and average graudal decline rate in water level. 
+
+Engineering design variables: length-to-width ratio, whether the pond is in a chain, number of outlets, whether the pond is mowed, pond age, pond area, average pond depth, average pond volume, low flow outlet restrictiveness, total outlet restrictiveness, total number of vegetation species, percent native veg species, and percent non-native veg species. 
+
+Watershed variables: percentage of days urban baseflow is occurring.
+
+Response variables:
+Biodiversity: total species richness, plant richness, animal richness, invertebrate richness, vertebrate richness, fish richness, herp richness, and amphibian richness.
+
+Aesthetics: odor, trash count, recreation count.
+
+Water Quality: chloride, dissolved oxygen, secchi depth, specific conductance, sulfate, temperature, total nitrogen, total phosphorous, total suspended solids, nitrate (using half of LOD values for values below LOD), and ammonia (using half LOD values for values below LOD).
+
+Could come back and determine R2 value for each linear regression.
+
+Also could look at average change in water quality variables vs average bounce.
+
+Updated: 3/8/24
+
+
+Read Variables and Bounce Files
+```{r}
+library(dplyr)
+
+# Predictor Variables
+
+# Design Vars
+design_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Design/Design_Vars.csv")
+lw_ratio <- design_dat$L.to.W.ratio
+pond_chain <- design_dat$Pond.Chain
+num_outlets <- design_dat$Number.of.Outlets
+mow_status <- design_dat$Mowed
+pond_age <- design_dat$Pond.Age
+
+# Pond/Watershed Areas
+area_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Areas/Pond_Areas.csv")
+pond_area <- area_dat$Pond.Area.ft2
+
+# Constant Depth Variables
+const_depth_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Constant_Depth/Uniform_Depth.csv")
+median_wl <- const_depth_dat$Median.Water.Level
+const_wl <- const_depth_dat$Constant.Water.Level
+const_wl_6in <- const_depth_dat$Contant.Water.Level.6in
+outlet_wl <- const_depth_dat$Outlet.Water.Level
+below_outlet_wl <- const_depth_dat$Below.Outlet.Water.Level
+wl_25_75 <- const_depth_dat$Water.Level.25.75.Quantile
+wl_10_90 <- const_depth_dat$Water.Level.10.90.Quantile
+skewness <- const_depth_dat$Pond.Skewness
+
+# Gradual Decline Rate
+dec_rate_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Decline_Rate/Decline_Rate.csv")
+avg_dec_rate <- dec_rate_dat$Average.Decline.Rate
+dec_rate_5_11 <- na.omit(dec_rate_dat$Decline.Rate.5.11)
+dec_rate_7_28 <- na.omit(dec_rate_dat$Decline.Rate.7.28)
+dec_rate_8_14 <- na.omit(dec_rate_dat$Decline.Rate.8.14)
+dec_rate_9_24 <- na.omit(dec_rate_dat$Decline.Rate.9.24)
+dec_rate_10_13 <- na.omit(dec_rate_dat$Decline.Rate.10.13)
+
+# Outlet Restrictiveness
+out_rest_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Outlet_Restrictiveness/Outlet_Restrictiveness.csv")
+# Using rating curve calculated from outflow calcs
+lf_rest <- na.omit(out_rest_dat$LF.Restrictiveness..calc.RC.)
+tot_rest <- na.omit(out_rest_dat$Tot.Restrictiveness..calc.RC.)
+
+# Residence Time
+res_time_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Residence_Time/Res_Time.csv")
+avg_depth <- res_time_dat$Average.Pond.Depth.ft
+avg_volume <- res_time_dat$Pond.Volume
+
+# Urban Baseflow
+urban_bf_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Urban_Baseflow/Urban_Baseflow.csv")
+urban_bf <- urban_bf_dat$Urban.Baseflow
+
+# Vegetation Survey
+veg_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Vegetation/Vegetation Survey.csv")
+tot_veg <- veg_data$Total...Veg.Species
+num_native <- veg_data$X..Native.Species
+num_nonnative <- veg_data$X..Non.native.species
+percent_native <- veg_data$X..Native.Species.1
+percent_nonnative <- veg_data$X..Non.native.species.1
+
+# Response Variables
+
+# Species Richness
+species_rich_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Species_Richness/Pond_Richness.csv")
+tot_rich <- species_rich_dat$Total.Richness
+plant_rich <- species_rich_dat$Plant.Richness
+animal_rich <- species_rich_dat$Animal.Richness
+invert_rich <- species_rich_dat$Invert.Richness
+vert_rich <- species_rich_dat$Vert.Richness
+fish_rich <- species_rich_dat$Fish.Richness
+herp_rich <- species_rich_dat$Herp.Richness
+amphib_rich <- species_rich_dat$Amphib.Richness
+
+# Aesthetics
+aesth_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Aesthetic/Average_Aesthetic.csv")
+avg_odor <- aesth_dat$Average.Odor
+avg_trash <- aesth_dat$Average.Trash.Count
+tot_rec <- aesth_dat$Total.People.Recreating
+
+# Water Quality Vars
+# Chloride
+chloride_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Chloride.csv")
+chloride <- chloride_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(Chloride..mg.L., na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(chloride_data$Pond.Name)), desc(Average_Value))
+
+# DO
+dissoxy_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/DissolvedOxygen.csv")
+dissoxy <- dissoxy_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(YSI.DO..mg.L., na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(dissoxy_data$Pond.Name)), desc(Average_Value))
+
+# Secchi
+secchi_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Secchi_Depth.csv")
+secchi <- secchi_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(Secchi.Disk.Depth..cm., na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(secchi_data$Pond.Name)), desc(Average_Value))
+
+# SPC
+spc_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/SPC.csv")
+spc <- spc_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(SPC, na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(spc_data$Pond.Name)), desc(Average_Value))
+
+# Sulfate
+sulfate_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Sulfate.csv")
+sulfate <- sulfate_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(Sulfate..mg.L., na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(sulfate_data$Pond.Name)), desc(Average_Value))
+
+# Temp
+temp_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Temperature.csv")
+temp <- temp_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(Temperature..Degrees.Celsius., na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(temp_data$Pond.Name)), desc(Average_Value))
+
+# TN
+tot_n_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/TotalNitrogen.csv")
+tot_n <- tot_n_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(TN..ug.L., na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(tot_n_data$Pond.Name)), desc(Average_Value))
+
+# TP
+tot_p_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/TotalPhosphorous.csv")
+tot_p <- tot_p_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(TP..ug.L., na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(tot_p_data$Pond.Name)), desc(Average_Value))
+
+# TSS
+tot_ss_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/TSS.csv")
+tot_ss <- tot_ss_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(TSS..mg.L., na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(tot_ss_data$Pond.Name)), desc(Average_Value))
+
+# Nitrate/Ammonia
+nitrate_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Nitrate Data.csv")
+nitrate <- nitrate_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(Nitrate..ug.L., na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(nitrate_data$Pond.Name)), desc(Average_Value))
+nitrate_lod <- nitrate_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(Nitrate.LOD..ug.L., na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(nitrate_data$Pond.Name)), desc(Average_Value))
+ammonia <- nitrate_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(Ammonia..ug.L., na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(nitrate_data$Pond.Name)), desc(Average_Value))
+ammonia_lod <- nitrate_data %>%
+  group_by(Pond.Name) %>%
+  summarize(Average_Value = mean(Ammonia.LOD..ug.L., na.rm = TRUE)) %>%
+  arrange(factor(Pond.Name, levels=unique(nitrate_data$Pond.Name)), desc(Average_Value))
+
+# Water Quality Percent Change by Storm
+
+# 7/28
+water_qual_7_28_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Water_Quality_Change_7_28.csv")
+chloride_7_28 <- water_qual_7_28_dat$Chloride.Change....
+do_7_28 <- water_qual_7_28_dat$YSI.DO.Change....
+secchi_7_28 <- water_qual_7_28_dat$Secchi.Disk.Change....
+sulfate_7_28 <- water_qual_7_28_dat$Sulfate.Change....
+temp_7_28 <- water_qual_7_28_dat$Temperature.Change....
+tn_7_28 <- water_qual_7_28_dat$TN.Change....
+tp_7_28 <- water_qual_7_28_dat$TP.Change....
+tss_7_28 <- water_qual_7_28_dat$TSS.Change....
+nitrate_7_28 <- water_qual_7_28_dat$Nitrate.Change....
+ammonia_7_28 <- water_qual_7_28_dat$Ammonia.Change....
+
+# 8/14
+water_qual_8_14_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Water_Quality_Change_8_14.csv")
+chloride_8_14 <- water_qual_8_14_dat$Chloride.Change....
+do_8_14 <- water_qual_8_14_dat$YSI.DO.Change....
+secchi_8_14 <- water_qual_8_14_dat$Secchi.Disk.Change....
+sulfate_8_14 <- water_qual_8_14_dat$Sulfate.Change....
+temp_8_14 <- water_qual_8_14_dat$Temperature.Change....
+tn_8_14 <- water_qual_8_14_dat$TN.Change....
+tp_8_14 <- water_qual_8_14_dat$TP.Change....
+tss_8_14 <- water_qual_8_14_dat$TSS.Change....
+nitrate_8_14 <- water_qual_8_14_dat$Nitrate.Change....
+ammonia_8_14 <- water_qual_8_14_dat$Ammonia.Change....
+
+# 9/24
+water_qual_9_24_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Water_Quality_Change_9_24.csv")
+chloride_9_24 <- water_qual_9_24_dat$Chloride.Change....
+do_9_24 <- water_qual_9_24_dat$YSI.DO.Change....
+secchi_9_24 <- water_qual_9_24_dat$Secchi.Disk.Change....
+spc_9_24 <- water_qual_9_24_dat$SPC.Change....
+sulfate_9_24 <- water_qual_9_24_dat$Sulfate.Change....
+temp_9_24 <- water_qual_9_24_dat$Temperature.Change....
+tn_9_24 <- water_qual_9_24_dat$TN.Change....
+tp_9_24 <- water_qual_9_24_dat$TP.Change....
+tss_9_24 <- water_qual_9_24_dat$TSS.Change....
+nitrate_9_24 <- water_qual_9_24_dat$Nitrate.Change....
+ammonia_9_24 <- water_qual_9_24_dat$Ammonia.Change....
+
+# Bounce files by storm
+# July 4
+bounce_jul4_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Bounce/July4_storm.csv")
+bounce_jul4 <- bounce_jul4_dat$maxbounce
+temp_var_jul4 <- bounce_jul4_dat$tempvariance
+rain_jul4 <- bounce_jul4_dat$rainamount
+# July 28
+bounce_jul28_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Bounce/July28_storm.csv")
+bounce_jul28 <- bounce_jul28_dat$maxbounce
+temp_var_jul28 <- bounce_jul28_dat$tempvariance
+rain_jul28 <- bounce_jul28_dat$rainamount
+# August 14
+bounce_aug14_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Bounce/Aug14_storm.csv")
+bounce_aug14 <- bounce_aug14_dat$maxbounce
+temp_var_aug14 <- bounce_aug14_dat$tempvariance
+rain_aug14 <- bounce_aug14_dat$rainamount
+# Sept 6
+bounce_sept6_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Bounce/Sept6_storm.csv")
+bounce_sept6 <- bounce_sept6_dat$maxbounce
+temp_var_sept6 <- bounce_sept6_dat$tempvariance
+rain_sept6 <- bounce_sept6_dat$rainamount
+# Sept 24
+bounce_sept24_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Bounce/Sept24_storm.csv")
+bounce_sept24 <- bounce_sept24_dat$maxbounce
+temp_var_sept24 <- bounce_sept24_dat$tempvariance
+rain_sept24 <- bounce_sept24_dat$rainamount
+# Oct 13
+bounce_oct13_dat <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Bounce/Oct13_storm.csv")
+bounce_oct13 <- bounce_oct13_dat$maxbounce
+temp_var_oct13 <- bounce_oct13_dat$tempvariance
+rain_oct13 <- bounce_oct13_dat$rainamount
+
+# Avg bounce files
+avg_bounce_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Predictor_Variables/Bounce/AverageBounce.csv")
+avg_bounce <- avg_bounce_data$maxbounce
+norm_bounce <- avg_bounce_data$normalized.bounce
+```
+
+Average Bounce vs Average Value Relationships
+```{r}
+# Predictor Variables
+# Length-to-width Ratio
+bounce_lw <- lm(lw_ratio ~ avg_bounce)
+plot(avg_bounce, lw_ratio, xlab = "Bounce (ft)", ylab = "Length-to-width Ratio", pch = 16, col = "red", bg="transparent")
+abline(bounce_lw)
+grid()
+
+# Pond Chain 
+bounce_chain <- lm(pond_chain ~ avg_bounce)
+plot(avg_bounce, pond_chain, xlab = "Bounce (ft)", ylab = "Pond Chain", pch = 16, col = "red2", bg="transparent")
+abline(bounce_chain)
+grid()
+
+# Number of Outlets
+bounce_numout <- lm(num_outlets ~ avg_bounce)
+plot(avg_bounce, num_outlets, xlab = "Bounce (ft)", ylab = "Number of Outlets", pch = 16, col = "red3", bg="transparent")
+abline(bounce_numout)
+grid()
+
+# Mow Status
+bounce_mow <- lm(mow_status ~ avg_bounce)
+plot(avg_bounce, mow_status, xlab = "Bounce (ft)", ylab = "Mow Status", pch = 16, col = "red4", bg="transparent")
+abline(bounce_mow)
+grid()
+
+# Pond Age
+bounce_age <- lm(pond_age ~ avg_bounce)
+plot(avg_bounce, pond_age, xlab = "Bounce (ft)", ylab = "Pond Age", pch = 16, col = "maroon", bg="transparent")
+abline(bounce_age)
+grid()
+
+# Median WL
+bounce_med_wl <- lm(median_wl ~ avg_bounce)
+plot(avg_bounce, median_wl, xlab = "Bounce (ft)", ylab = "Median Water Level (ft)", pch = 16, col = "orange", bg="transparent")
+abline(bounce_med_wl)
+grid()
+
+# Constant WL
+bounce_const_wl <- lm(const_wl ~ avg_bounce)
+plot(avg_bounce, const_wl, xlab = "Bounce (ft)", ylab = "Percent of Time Water Level is Constant", pch = 16, col = "orange2", bg="transparent")
+abline(bounce_const_wl)
+grid()
+
+# Constant WL within 6 in
+bounce_const_wl_6in <- lm(const_wl_6in ~ avg_bounce)
+plot(avg_bounce, const_wl_6in, xlab = "Bounce (ft)", ylab = "Percent of Time Water Level within 6 in of Mode", pch = 16, col = "orange3", bg="transparent")
+abline(bounce_const_wl_6in)
+grid()
+
+# Outlet WL
+bounce_out_wl <- lm(outlet_wl ~ avg_bounce)
+plot(avg_bounce, outlet_wl, xlab = "Bounce (ft)", ylab = "Outlet Water Level", pch = 16, col = "orange4", bg="transparent")
+abline(bounce_out_wl)
+grid()
+
+# Below Outlet WL
+bounce_below_out <- lm(below_outlet_wl ~ avg_bounce)
+plot(avg_bounce, below_outlet_wl, xlab = "Bounce (ft)", ylab = "Percent of Time Water Level is Below Outlet", pch = 16, col = "gold", bg="transparent")
+abline(bounce_below_out)
+grid()
+
+# Water Level 25-75 Percentile
+bounce_25_75 <- lm(wl_25_75 ~ avg_bounce)
+plot(avg_bounce, wl_25_75, xlab = "Bounce (ft)", ylab = "Percentage of Time Water Level Between 25 and 75 Percentile", pch = 16, col = "gold2", bg="transparent")
+abline(bounce_25_75)
+grid()
+
+# Water Level 10-90 Percentile
+bounce_10_90 <- lm(wl_10_90 ~ avg_bounce)
+plot(avg_bounce, wl_10_90, xlab = "Bounce (ft)", ylab = "Percentage of Time Water Level Between 10 and 90 Percentile", pch = 16, col = "gold3", bg="transparent")
+abline(bounce_10_90)
+grid()
+
+# Skewness
+bounce_skew <- lm(skewness ~ avg_bounce)
+plot(avg_bounce, skewness, xlab = "Bounce (ft)", ylab = "Skewness of Water Level Histogram", pch = 16, col = "gold4", bg="transparent")
+abline(bounce_skew)
+grid()
+
+# Average Gradual Decline Rate
+bounce_dec <- lm(avg_dec_rate ~ avg_bounce)
+plot(avg_bounce, avg_dec_rate, xlab = "Bounce (ft)", ylab = "Average Gradual Decline Rate", pch = 16, col = "yellow", bg="transparent")
+abline(bounce_dec)
+grid()
+
+# Low Flow Outlet Restrictiveness
+bounce_lf_rest <- lm(lf_rest ~ avg_bounce)
+plot(avg_bounce, lf_rest, xlab = "Bounce (ft)", ylab = "Low Flow Outlet Restrictiveness", pch = 16, col = "salmon", bg="transparent")
+abline(bounce_lf_rest)
+grid()
+
+# Total Outlet Restrictiveness
+bounce_tot_rest <- lm(tot_rest ~ avg_bounce)
+plot(avg_bounce, tot_rest, xlab = "Bounce (ft)", ylab = "Total Outlet Restrictiveness", pch = 16, col = "salmon3", bg="transparent")
+abline(bounce_tot_rest)
+grid()
+
+# Pond Area
+bounce_area <- lm(pond_area ~ avg_bounce)
+plot(avg_bounce, pond_area, xlab = "Bounce (ft)", ylab = "Pond Area (ft2)", pch = 16, col = "maroon2", bg="transparent")
+abline(bounce_area)
+grid()
+
+# Average Depth
+bounce_depth <- lm(avg_depth ~ avg_bounce)
+plot(avg_bounce, avg_depth, xlab = "Bounce (ft)", ylab = "Average Pond Depth (ft)", pch = 16, col = "pink", bg="transparent")
+abline(bounce_depth)
+grid()
+
+# Average Volume
+bounce_vol <- lm(avg_volume ~ avg_bounce)
+plot(avg_bounce, avg_volume, xlab = "Bounce (ft)", ylab = "Pond Volume (ft3)", pch = 16, col = "pink2", bg="transparent")
+abline(bounce_vol)
+grid()
+
+# Urban Baseflow
+bounce_urb_bf <- lm(urban_bf ~ avg_bounce)
+plot(avg_bounce, urban_bf, xlab = "Bounce (ft)", ylab = "Percentage of Days with Inflow", pch = 16, col = "pink3", bg="transparent")
+abline(bounce_urb_bf)
+grid()
+
+# Total Vegetation Species
+bounce_tot_veg <- lm(tot_veg ~ avg_bounce)
+plot(avg_bounce, tot_veg, xlab = "Bounce (ft)", ylab = "Total # of Vegetation Species", pch = 16, col = "darkseagreen", bg="transparent")
+abline(bounce_tot_veg)
+grid()
+
+# Percent Native Veg Species
+bounce_native_veg <- lm(percent_native ~ avg_bounce)
+plot(avg_bounce, percent_native, xlab = "Bounce (ft)", ylab = "% Native Species", pch = 16, col = "darkseagreen2", bg="transparent")
+abline(bounce_native_veg)
+grid()
+
+# Percent Non-native Veg Species
+bounce_nonnative_veg <- lm(percent_nonnative ~ avg_bounce)
+plot(avg_bounce, percent_nonnative, xlab = "Bounce (ft)", ylab = "% Non-native Species", pch = 16, col = "darkseagreen3", bg="transparent")
+abline(bounce_nonnative_veg)
+grid()
+
+# Response Variables
+# Species Richness
+bounce_rich <- lm(tot_rich ~ avg_bounce)
+plot(avg_bounce, tot_rich, xlab = "Bounce (ft)", ylab = "Total Species Richness", pch = 16, col = "purple", bg="transparent")
+abline(bounce_rich)
+grid()
+
+# Plant Richness
+bounce_plant_rich <- lm(plant_rich ~ avg_bounce)
+plot(avg_bounce, plant_rich, xlab = "Bounce (ft)", ylab = "Plant Species Richness", pch = 16, col = "purple3", bg="transparent")
+abline(bounce_plant_rich)
+grid()
+
+# Animal Richness
+bounce_animal_rich <- lm(animal_rich ~ avg_bounce)
+plot(avg_bounce, animal_rich, xlab = "Bounce (ft)", ylab = "Animal Species Richness", pch = 16, col = "purple4", bg="transparent")
+abline(bounce_animal_rich)
+grid()
+
+# Invertebrate Richness
+bounce_invert_rich <- lm(invert_rich ~ avg_bounce)
+plot(avg_bounce, invert_rich, xlab = "Bounce (ft)", ylab = "Invertebrate Species Richness", pch = 16, col = "magenta", bg="transparent")
+abline(bounce_invert_rich)
+grid()
+
+# Vertebrate Richness
+bounce_vert_rich <- lm(vert_rich ~ avg_bounce)
+plot(avg_bounce, vert_rich, xlab = "Bounce (ft)", ylab = "Vertebrate Species Richness", pch = 16, col = "magenta2", bg="transparent")
+abline(bounce_vert_rich)
+grid()
+
+# Fish Richness
+bounce_fish_rich <- lm(fish_rich ~ avg_bounce)
+plot(avg_bounce, fish_rich, xlab = "Bounce (ft)", ylab = "Fish Species Richness", pch = 16, col = "magenta3", bg="transparent")
+abline(bounce_fish_rich)
+grid()
+
+# Herp Richness
+bounce_herp_rich <- lm(herp_rich ~ avg_bounce)
+plot(avg_bounce, herp_rich, xlab = "Bounce (ft)", ylab = "Herp Species Richness", pch = 16, col = "magenta4", bg="transparent")
+abline(bounce_herp_rich)
+grid()
+
+# Amphibian Richness
+bounce_amphib_rich <- lm(amphib_rich ~ avg_bounce)
+plot(avg_bounce, amphib_rich, xlab = "Bounce (ft)", ylab = "Amphibian Species Richness", pch = 16, col = "orchid", bg="transparent")
+abline(bounce_amphib_rich)
+grid()
+
+# Chloride
+bounce_chlor <- lm(chloride$Average_Value ~ avg_bounce)
+plot(avg_bounce, chloride$Average_Value, xlab = "Bounce (ft)", ylab = "Chloride (mg/L)", pch = 16, col = "lightblue", bg="transparent")
+abline(bounce_chlor)
+grid()
+
+# DO
+bounce_do <- lm(dissoxy$Average_Value ~ avg_bounce)
+plot(avg_bounce, dissoxy$Average_Value, xlab = "Bounce (ft)", ylab = "Dissolved Oxygen (mg/L)", pch = 16, col = "blue", bg="transparent")
+abline(bounce_do)
+grid()
+
+# Secchi
+bounce_secchi <- lm(secchi$Average_Value ~ avg_bounce)
+plot(avg_bounce, secchi$Average_Value, xlab = "Bounce (ft)", ylab = "Secchi Depth (cm)", pch = 16, col = "blue4", bg="transparent")
+abline(bounce_secchi)
+grid()
+
+# SPC
+bounce_spc <- lm(spc$Average_Value ~ avg_bounce)
+plot(avg_bounce, spc$Average_Value, xlab = "Bounce (ft)", ylab = "Specific Conductance", pch = 16, col = "lightgreen", bg="transparent")
+abline(bounce_spc)
+grid()
+
+# Sulfate
+bounce_sulfate <- lm(sulfate$Average_Value ~ avg_bounce)
+plot(avg_bounce, sulfate$Average_Value, xlab = "Bounce (ft)", ylab = "Sulfate (mg/L)", pch = 16, col = "green2", bg="transparent")
+abline(bounce_sulfate)
+grid()
+
+# Temperature
+bounce_temp <- lm(temp$Average_Value ~ avg_bounce)
+plot(avg_bounce, temp$Average_Value, xlab = "Bounce (ft)", ylab = "Temperature (degrees C)", pch = 16, col = "green3", bg="transparent")
+abline(bounce_temp)
+grid()
+
+# TN
+bounce_tn <- lm(tot_n$Average_Value ~ avg_bounce)
+plot(avg_bounce, tot_n$Average_Value, xlab = "Bounce (ft)", ylab = "Total Nitrogen (mg/L)", pch = 16, col = "green4", bg="transparent")
+abline(bounce_tn)
+grid()
+
+# TP
+bounce_tp <- lm(tot_p$Average_Value ~ avg_bounce)
+plot(avg_bounce, tot_p$Average_Value, xlab = "Bounce (ft)", ylab = "Total Phosphorous (mg/L)", pch = 16, col = "turquoise", bg="transparent")
+abline(bounce_tp)
+grid()
+
+# TSS
+bounce_tss <- lm(tot_ss$Average_Value ~ avg_bounce)
+plot(avg_bounce, tot_ss$Average_Value, xlab = "Bounce (ft)", ylab = "Total Suspended Solids (mg/L)", pch = 16, col = "turquoise2", bg="transparent")
+abline(bounce_tss)
+grid()
+
+# Nitrate
+bounce_nitrate <- lm(nitrate$Average_Value ~ avg_bounce)
+plot(avg_bounce, nitrate$Average_Value, xlab = "Bounce (ft)", ylab = "Nitrate (ug/L)", pch = 16, col = "turquoise4", bg="transparent")
+abline(bounce_nitrate)
+grid()
+
+# Nitrate LOD
+bounce_nitrate_lod <- lm(nitrate_lod$Average_Value ~ avg_bounce)
+plot(avg_bounce, nitrate_lod$Average_Value, xlab = "Bounce (ft)", ylab = "Nitrate LOD (ug/L)", pch = 16, col = "seagreen", bg="transparent")
+abline(bounce_nitrate_lod)
+grid()
+
+# Ammonia
+bounce_ammonia <- lm(ammonia$Average_Value ~ avg_bounce)
+plot(avg_bounce, ammonia$Average_Value, xlab = "Bounce (ft)", ylab = "Ammonia (ug/L)", pch = 16, col = "seagreen2", bg="transparent")
+abline(bounce_ammonia)
+grid()
+
+# Ammonia LOD
+bounce_ammonia_lod <- lm(ammonia_lod$Average_Value ~ avg_bounce)
+plot(avg_bounce, ammonia_lod$Average_Value, xlab = "Bounce (ft)", ylab = "Ammonia LOD (ug/L)", pch = 16, col = "seagreen3", bg="transparent")
+abline(bounce_ammonia_lod)
+grid()
+
+# Odor
+bounce_odor <- lm(avg_odor ~ avg_bounce)
+plot(avg_bounce, avg_odor, xlab = "Bounce (ft)", ylab = "Average Odor (scale -5 to 5)", pch = 16, col = "lightgray", bg="transparent")
+abline(bounce_odor)
+grid()
+
+# Trash
+bounce_trash <- lm(avg_trash ~ avg_bounce)
+plot(avg_bounce, avg_trash, xlab = "Bounce (ft)", ylab = "Average Trash Count", pch = 16, col = "gray", bg="transparent")
+abline(bounce_trash)
+grid()
+
+# Recreation
+bounce_rec <- lm(tot_rec ~ avg_bounce)
+plot(avg_bounce, tot_rec, xlab = "Bounce (ft)", ylab = "Total Recreation", pch = 16, col = "darkgray", bg="transparent")
+abline(bounce_rec)
+grid()
+```
+
+Storm-Based Bounce Relationships
+```{r}
+# Gradual Water Level Decline
+# July 28
+bounce_dec_jul28 <- lm(dec_rate_7_28 ~ bounce_jul28)
+plot(bounce_jul28, dec_rate_7_28, xlab = "Bounce (ft)", ylab = "Average Gradual Decline Rate", pch = 16, col = "royalblue", bg="transparent")
+abline(bounce_dec_jul28)
+grid()
+
+# August 14
+bounce_dec_aug14 <- lm(dec_rate_8_14 ~ bounce_aug14)
+plot(bounce_aug14, dec_rate_8_14, xlab = "Bounce (ft)", ylab = "Average Gradual Decline Rate", pch = 16, col = "royalblue4", bg="transparent")
+abline(bounce_dec_aug14)
+grid()
+
+# September 24
+bounce_dec_sept24 <- lm(dec_rate_9_24 ~ bounce_sept24)
+plot(bounce_sept24, dec_rate_9_24, xlab = "Bounce (ft)", ylab = "Average Gradual Decline Rate", pch = 16, col = "forestgreen", bg="transparent")
+abline(bounce_dec_sept24)
+grid()
+
+# October 13
+bounce_dec_oct13 <- lm(dec_rate_10_13 ~ bounce_oct13)
+plot(bounce_oct13, dec_rate_10_13, xlab = "Bounce (ft)", ylab = "Average Gradual Decline Rate", pch = 16, col = "darkgreen", bg="transparent")
+abline(bounce_dec_oct13)
+grid()
+
+# Temperature Variance
+
+# July 4
+bounce_temp_jul4 <- lm(temp_var_jul4 ~ bounce_jul4)
+plot(bounce_jul4, temp_var_jul4, xlab = "Bounce (ft)", ylab = "Temperature Variance", pch = 16, col = "lightpink", bg="transparent")
+abline(bounce_temp_jul4)
+grid()
+
+# July 28
+bounce_temp_jul28 <- lm(temp_var_jul28 ~ bounce_jul28)
+plot(bounce_jul28, temp_var_jul28, xlab = "Bounce (ft)", ylab = "Temperature Variance", pch = 16, col = "lightpink3", bg="transparent")
+abline(bounce_temp_jul28)
+grid()
+
+# August 14
+bounce_temp_aug14 <- lm(temp_var_aug14 ~ bounce_aug14)
+plot(bounce_aug14, temp_var_aug14, xlab = "Bounce (ft)", ylab = "Temperature Variance", pch = 16, col = "lightpink4", bg="transparent")
+abline(bounce_temp_aug14)
+grid()
+
+# September 6
+bounce_temp_sept6 <- lm(temp_var_sept6 ~ bounce_sept6)
+plot(bounce_sept6, temp_var_sept6, xlab = "Bounce (ft)", ylab = "Temperature Variance", pch = 16, col = "hotpink", bg="transparent")
+abline(bounce_temp_sept6)
+grid()
+
+# September 24
+bounce_temp_sept24 <- lm(temp_var_sept24 ~ bounce_sept24)
+plot(bounce_sept24, temp_var_sept24, xlab = "Bounce (ft)", ylab = "Temperature Variance", pch = 16, col = "hotpink3", bg="transparent")
+abline(bounce_temp_sept24)
+grid()
+
+# October 13
+bounce_temp_oct13 <- lm(temp_var_oct13 ~ bounce_oct13)
+plot(bounce_oct13, temp_var_oct13, xlab = "Bounce (ft)", ylab = "Temperature Variance", pch = 16, col = "hotpink4", bg="transparent")
+abline(bounce_temp_oct13)
+grid()
+
+# Water Quality
+
+# July 28 Storm
+# Chloride
+bounce_chlor_jul28 <- lm(chloride_7_28 ~ bounce_jul28)
+plot(bounce_jul28, chloride_7_28, xlab = "Bounce (ft)", ylab = "Chloride", pch = 16, col = "lightblue", bg="transparent")
+abline(bounce_chlor_jul28)
+grid()
+
+# DO
+bounce_do_jul28 <- lm(do_7_28 ~ bounce_jul28)
+plot(bounce_jul28, do_7_28, xlab = "Bounce (ft)", ylab = "Dissolved Oxygen", pch = 16, col = "lightblue3", bg="transparent")
+abline(bounce_do_jul28)
+grid()
+
+# Secchi
+bounce_secchi_jul28 <- lm(secchi_7_28 ~ bounce_jul28)
+plot(bounce_jul28, secchi_7_28, xlab = "Bounce (ft)", ylab = "Water Clarity", pch = 16, col = "lightblue4", bg="transparent")
+abline(bounce_secchi_jul28)
+grid()
+
+# Sulfate
+bounce_sulfate_jul28 <- lm(sulfate_7_28 ~ bounce_jul28)
+plot(bounce_jul28, sulfate_7_28, xlab = "Bounce (ft)", ylab = "Sulfate", pch = 16, col = "lightgreen", bg="transparent")
+abline(bounce_sulfate_jul28)
+grid()
+
+# Temp
+bounce_temp_jul28 <- lm(temp_7_28 ~ bounce_jul28)
+plot(bounce_jul28, temp_7_28, xlab = "Bounce (ft)", ylab = "Temperature", pch = 16, col = "palegreen", bg="transparent")
+abline(bounce_temp_jul28)
+grid()
+
+# TN
+bounce_tn_jul28 <- lm(tn_7_28 ~ bounce_jul28)
+plot(bounce_jul28, tn_7_28, xlab = "Bounce (ft)", ylab = "Total Nitrogen", pch = 16, col = "palegreen3", bg="transparent")
+abline(bounce_tn_jul28)
+grid()
+
+# TP
+bounce_tp_jul28 <- lm(tp_7_28 ~ bounce_jul28)
+plot(bounce_jul28, tp_7_28, xlab = "Bounce (ft)", ylab = "Total Phosphorous", pch = 16, col = "palegreen4", bg="transparent")
+abline(bounce_tp_jul28)
+grid()
+
+# TSS
+bounce_tss_jul28 <- lm(tss_7_28 ~ bounce_jul28)
+plot(bounce_jul28, tss_7_28, xlab = "Bounce (ft)", ylab = "Total Suspended Solids", pch = 16, col = "lightslateblue", bg="transparent")
+abline(bounce_tss_jul28)
+grid()
+
+# Nitrate
+bounce_nitrate_jul28 <- lm(nitrate_7_28 ~ bounce_jul28)
+plot(bounce_jul28, nitrate_7_28, xlab = "Bounce (ft)", ylab = "Nitrate", pch = 16, col = "mediumpurple", bg="transparent")
+abline(bounce_nitrate_jul28)
+grid()
+
+# Ammonia
+bounce_ammonia_jul28 <- lm(ammonia_7_28 ~ bounce_jul28)
+plot(bounce_jul28, ammonia_7_28, xlab = "Bounce (ft)", ylab = "Ammonia", pch = 16, col = "mediumpurple3", bg="transparent")
+abline(bounce_ammonia_jul28)
+grid()
+
+# August 14 Storm
+# Chloride
+bounce_chlor_aug14 <- lm(chloride_8_14 ~ bounce_aug14)
+plot(bounce_aug14, chloride_8_14, xlab = "Bounce (ft)", ylab = "Chloride", pch = 16, col = "lightblue", bg="transparent")
+abline(bounce_chlor_aug14)
+grid()
+
+# DO
+bounce_do_aug14 <- lm(do_8_14 ~ bounce_aug14)
+plot(bounce_aug14, do_8_14, xlab = "Bounce (ft)", ylab = "Dissolved Oxygen", pch = 16, col = "lightblue3", bg="transparent")
+abline(bounce_do_aug14)
+grid()
+
+# Secchi
+bounce_secchi_aug14 <- lm(secchi_8_14 ~ bounce_aug14)
+plot(bounce_aug14, secchi_8_14, xlab = "Bounce (ft)", ylab = "Water Clarity", pch = 16, col = "lightblue4", bg="transparent")
+abline(bounce_secchi_aug14)
+grid()
+
+# Sulfate
+bounce_sulfate_aug14 <- lm(sulfate_8_14 ~ bounce_aug14)
+plot(bounce_aug14, sulfate_8_14, xlab = "Bounce (ft)", ylab = "Sulfate", pch = 16, col = "lightgreen", bg="transparent")
+abline(bounce_sulfate_aug14)
+grid()
+
+# Temp
+#bounce_temp_aug14 <- lm(temp_8_14 ~ bounce_aug14)
+#plot(bounce_aug14, temp_8_14, xlab = "Bounce (ft)", ylab = "Temperature", pch = 16, col = "palegreen", bg="transparent")
+#abline(bounce_temp_aug14)
+#grid()
+
+# TN
+bounce_tn_aug14 <- lm(tn_8_14 ~ bounce_aug14)
+plot(bounce_aug14, tn_8_14, xlab = "Bounce (ft)", ylab = "Total Nitrogen", pch = 16, col = "palegreen3", bg="transparent")
+abline(bounce_tn_aug14)
+grid()
+
+# TP
+bounce_tp_aug14 <- lm(tp_8_14 ~ bounce_aug14)
+plot(bounce_aug14, tp_8_14, xlab = "Bounce (ft)", ylab = "Total Phosphorous", pch = 16, col = "palegreen4", bg="transparent")
+abline(bounce_tp_aug14)
+grid()
+
+# TSS
+bounce_tss_aug14 <- lm(tss_8_14 ~ bounce_aug14)
+plot(bounce_aug14, tss_8_14, xlab = "Bounce (ft)", ylab = "Total Suspended Solids", pch = 16, col = "lightslateblue", bg="transparent")
+abline(bounce_tss_aug14)
+grid()
+
+# Nitrate
+bounce_nitrate_aug14 <- lm(nitrate_8_14 ~ bounce_aug14)
+plot(bounce_aug14, nitrate_8_14, xlab = "Bounce (ft)", ylab = "Nitrate", pch = 16, col = "mediumpurple", bg="transparent")
+abline(bounce_nitrate_aug14)
+grid()
+
+# Ammonia
+bounce_ammonia_aug14 <- lm(ammonia_8_14 ~ bounce_aug14)
+plot(bounce_aug14, ammonia_8_14, xlab = "Bounce (ft)", ylab = "Ammonia", pch = 16, col = "mediumpurple3", bg="transparent")
+abline(bounce_ammonia_aug14)
+grid()
+
+
+# September 24 Storm
+# Chloride
+bounce_chlor_sept24 <- lm(chloride_9_24 ~ bounce_sept24)
+plot(bounce_sept24, chloride_9_24, xlab = "Bounce (ft)", ylab = "Chloride", pch = 16, col = "lightblue", bg="transparent")
+abline(bounce_chlor_sept24)
+grid()
+
+# DO
+bounce_do_sept24 <- lm(do_9_24 ~ bounce_sept24)
+plot(bounce_sept24, do_9_24, xlab = "Bounce (ft)", ylab = "Dissolved Oxygen", pch = 16, col = "lightblue3", bg="transparent")
+abline(bounce_do_sept24)
+grid()
+
+# Secchi
+bounce_secchi_sept24 <- lm(secchi_9_24 ~ bounce_sept24)
+plot(bounce_sept24, secchi_9_24, xlab = "Bounce (ft)", ylab = "Water Clarity", pch = 16, col = "lightblue4", bg="transparent")
+abline(bounce_secchi_sept24)
+grid()
+
+# Sulfate
+bounce_sulfate_sept24 <- lm(sulfate_9_24 ~ bounce_sept24)
+plot(bounce_sept24, sulfate_9_24, xlab = "Bounce (ft)", ylab = "Sulfate", pch = 16, col = "lightgreen", bg="transparent")
+abline(bounce_sulfate_sept24)
+grid()
+
+# Temp
+bounce_temp_sept24 <- lm(temp_9_24 ~ bounce_sept24)
+plot(bounce_sept24, temp_9_24, xlab = "Bounce (ft)", ylab = "Temperature", pch = 16, col = "palegreen", bg="transparent")
+abline(bounce_temp_sept24)
+grid()
+
+# TN
+bounce_tn_sept24 <- lm(tn_9_24 ~ bounce_sept24)
+plot(bounce_sept24, tn_9_24, xlab = "Bounce (ft)", ylab = "Total Nitrogen", pch = 16, col = "palegreen3", bg="transparent")
+abline(bounce_tn_sept24)
+grid()
+
+# TP
+bounce_tp_sept24 <- lm(tp_9_24 ~ bounce_sept24)
+plot(bounce_sept24, tp_9_24, xlab = "Bounce (ft)", ylab = "Total Phosphorous", pch = 16, col = "palegreen4", bg="transparent")
+abline(bounce_tp_sept24)
+grid()
+
+# TSS
+bounce_tss_sept24 <- lm(tss_9_24 ~ bounce_sept24)
+plot(bounce_sept24, tss_9_24, xlab = "Bounce (ft)", ylab = "Total Suspended Solids", pch = 16, col = "lightslateblue", bg="transparent")
+abline(bounce_tss_sept24)
+grid()
+
+# Nitrate
+bounce_nitrate_sept24 <- lm(nitrate_9_24 ~ bounce_sept24)
+plot(bounce_sept24, nitrate_9_24, xlab = "Bounce (ft)", ylab = "Nitrate", pch = 16, col = "mediumpurple", bg="transparent")
+abline(bounce_nitrate_sept24)
+grid()
+
+# Ammonia
+bounce_ammonia_sept24 <- lm(ammonia_9_24 ~ bounce_sept24)
+plot(bounce_sept24, ammonia_9_24, xlab = "Bounce (ft)", ylab = "Ammonia", pch = 16, col = "mediumpurple3", bg="transparent")
+abline(bounce_ammonia_sept24)
+grid()
+
+# SPC
+bounce_spc_sept24 <- lm(spc_9_24 ~ bounce_sept24)
+plot(bounce_sept24, spc_9_24, xlab = "Bounce (ft)", ylab = "Specific Conductance", pch = 16, col = "darkslateblue", bg="transparent")
+abline(bounce_spc_sept24)
+grid()
+
+```
+
