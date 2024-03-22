@@ -1,0 +1,146 @@
+---
+title: "Response Variables"
+author: "Hannah Curtis"
+date: "2024-01-11"
+output: html_document
+---
+This file creates boxplots for all of the response variables with multiple values per pond, including the water quality parameters of secchi depth, chloride, dissolved oxygen, specific conductance, sulfate, temperature (from YSI), total nitrogen, total phosphorous, total suspended solids, nitrate, and ammonia. Can come back and add aesthetic parameters (range of trash, odor, recreation) and attenuation values for each storm. Could also create a boxplot of bounce for each storm.
+
+Updated: 3/5/24
+
+Read in files
+```{r}
+secchi <- read.csv('/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Secchi_Depth.csv')
+chloride <- read.csv('/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Chloride.csv')
+DO <- read.csv('/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/DissolvedOxygen.csv')
+SPC <- read.csv('/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/SPC.csv')
+sulfate <- read.csv('/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Sulfate.csv')
+temp <- read.csv('/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Temperature.csv')
+TN <- read.csv('/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/TotalNitrogen.csv')
+TP <- read.csv('/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/TotalPhosphorous.csv')
+TSS <- read.csv('/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/TSS.csv')
+nitrate <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/Nitrate Data.csv")
+
+#set colors for each box
+boxplot_colors <- c("dodgerblue4", "red", "gray", "green", "gold", "magenta", "orange", "purple", "brown", "skyblue", "coral1", "lavender", "forestgreen", "yellow", "maroon", "pink", "royalblue", "lightsalmon", "tan", "darkgray")
+```
+
+Secchi Disk Boxplot
+```{r}
+# Get pond names from csv file
+pond_name <- secchi$Pond.Name
+# Get secchi depths
+secchi_depth <- secchi$Secchi.Disk.Depth..cm.
+# Move labels of plot to fit pond names
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+
+# Plot secchi depths in boxplot
+boxplot(secchi_depth ~ pond_name, data = secchi, las=2, main="Water Clarity", xlab="", ylab="Secchi Depth (cm)", col=boxplot_colors, cex.axis=1, cex.lab = 1, cex.main = 1)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+
+```
+
+Chloride Boxplot
+```{r}
+pond_name <- chloride$Pond.Name
+chloride_conc <- chloride$Chloride..mg.L.
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+boxplot(chloride_conc ~ pond_name, data = chloride, las=2, main="Chloride", xlab="", ylab="Chloride Concentration (mg/L)", col=boxplot_colors)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+```
+
+DO Boxplot
+```{r}
+pond_name <- DO$Pond.Name
+DO_conc <- DO$YSI.DO..mg.L.
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+boxplot(DO_conc ~ pond_name, data = DO, las=2, main="Dissolved Oxygen", xlab="", ylab="DO Concentration (mg/L)", col=boxplot_colors)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+```
+
+SPC Boxplot
+```{r}
+pond_name <- SPC$Pond.Name
+SPC_conc <- SPC$SPC
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+boxplot(SPC_conc ~ pond_name, data = SPC, las=2, main="Specific Conductance", xlab="", ylab="SPC (S/cm)", col=boxplot_colors)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+```
+
+Sulfate Boxplot
+```{r}
+pond_name <- sulfate$Pond.Name
+sulfate_conc <- sulfate$Sulfate..mg.L.
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+boxplot(sulfate_conc ~ pond_name, data = sulfate, las=2, main="Sulfate", xlab="", ylab="Sulfate Concentration (mg/L)", col=boxplot_colors)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+```
+
+Temperature Boxplot
+```{r}
+pond_name <- temp$Pond.Name
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+boxplot(temperature ~ pond_name, data = temp, las=2, main="Temperature", xlab="", ylab="Temperature (degrees C)", col=boxplot_colors)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+```
+
+TN Boxplot
+```{r}
+pond_name <- TN$Pond.Name
+TN_conc <- TN$TN..ug.L.
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+boxplot(TN_conc ~ pond_name, data = TN, las=2, main="Total Nitrogen", xlab="", ylab="TN Concentration (mg/L)", col=boxplot_colors)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+```
+
+TP Boxplot
+```{r}
+pond_name <- TP$Pond.Name
+TP_conc <- TP$TP..ug.L.
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+boxplot(TP_conc ~ pond_name, data = TP, las=2, main="Total Phosphorous", xlab="", ylab="TP Concentration (mg/L)", col=boxplot_colors)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+```
+
+TSS Boxplot
+```{r}
+pond_name <- TSS$Pond.Name
+TSS_conc <- TSS$TSS..mg.L.
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+boxplot(TSS_conc ~ pond_name, data = TSS, las=2, main="Total Suspended Solids", xlab="", ylab="TSS Concentration (mg/L)", col=boxplot_colors)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+```
+
+Nitrate/Ammonia Boxplot
+```{r}
+# nitrate
+pond_name <- nitrate$Pond.Name
+nitrate_conc <- nitrate$Nitrate..ug.L.
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+boxplot(nitrate_conc ~ pond_name, data = nitrate, las=2, main="Nitrate", xlab="", ylab="Nitrate Concentration (ug/L)", col=boxplot_colors)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+
+# nitrate where values below LOD are set to half LOD
+pond_name <- nitrate$Pond.Name
+nitrate_lod_conc <- nitrate$Nitrate.LOD..ug.L.
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+boxplot(nitrate_lod_conc ~ pond_name, data = nitrate, las=2, main="Nitrate LOD", xlab="", ylab="Nitrate LOD Concentration (ug/L)", col=boxplot_colors)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+
+# ammonia
+pond_name <- nitrate$Pond.Name
+ammonia_conc <- nitrate$Ammonia..ug.L.
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+boxplot(ammonia_conc ~ pond_name, data = nitrate, las=2, main="Ammonia", xlab="", ylab="Ammonia Concentration (ug/L)", col=boxplot_colors)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+
+# ammonia where values below LOD are set to half LOD
+pond_name <- nitrate$Pond.Name
+ammonia_lod_conc <- nitrate$Ammonia.LOD..ug.L.
+par(plt = c(0.1, 0.9, 0.1, 0.9), mar = c(10, 5, 2, 10))
+boxplot(ammonia_lod_conc ~ pond_name, data = nitrate, las=2, main="Ammonia LOD", xlab="", ylab="Ammonia LOD Concentration (ug/L)", col=boxplot_colors)
+mtext("Pond", side = 1, line =8, adj = 0.5)
+
+
+```
+
