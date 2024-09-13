@@ -1,0 +1,72 @@
+---
+title: "Technical_Note_Results"
+output: html_document
+date: "2024-09-13"
+---
+
+```{r}
+source("reverse_puls.R")
+
+# read water level
+garner <- read.csv("Inflow_Outflow/Garner_Water_Level_all.csv")
+depth_gar <- garner$Depth.ft
+
+garner_in_out_test <- get_inflow_outflow_res(depth_gar, 0.01, 1/(12*2.54), 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300)
+print(garner_in_out_test)
+
+plot(garner_in_out_test$Inflow.cfs[27258:27658], type = "l", col="blue")
+lines(avg_inflow_raw_gar[27256:27656], type = "l", col = "red")
+```
+
+Garner
+```{r}
+# HAVING ISSUE WHEN RUNNING FUNCTION WITH NEGATIVE BIAS VALUES
+
+bias_values <- seq(-5, 5, by = 0.1)/(2.54*12)
+
+# create an empty dataframe to store the results
+garner_results_df <- data.frame(matrix(ncol = 100, nrow(garner)))
+
+# loop to run the function 100 times, changing the bias value each time
+for (i in 1:length(bias_values)) {
+  # call the function with the current multiplier
+  garner_results_df[i] <- get_inflow_outflow_res(depth_gar[27256:27656], 0.01, bias_values[i], 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300)
+}
+```
+
+95% Confidence Interval Function
+```{r}
+# Function to calculate 95% confidence intervals for each row in a data frame
+calculate_ci_loop <- function(df) {
+  # Create an empty data frame to store the results
+  ci_df <- data.frame(Lower_CI = numeric(nrow(df)), Upper_CI = numeric(nrow(df)))
+  
+  # Loop through each row of the data frame
+  for (i in 1:nrow(df)) {
+    # Extract the current row
+    row <- df[i, ]
+    
+    # Calculate mean and standard error for the row
+    mean_result <- mean(row)
+    sd_result <- sd(row)
+    se_result <- sd_result / sqrt(ncol(df))
+    
+    # Calculate margin of error
+    z_score <- 1.96  # Z-score for 95% confidence
+    margin_of_error <- z_score * se_result
+    
+    # Calculate the confidence interval
+    lower_bound <- mean_result - margin_of_error
+    upper_bound <- mean_result + margin_of_error
+    
+    # Store the results in the data frame
+    ci_df$Lower_CI[i] <- lower_bound
+    ci_df$Upper_CI[i] <- upper_bound
+  }
+  
+  # Return the data frame containing the confidence intervals
+  return(ci_df)
+}
+
+```
+
