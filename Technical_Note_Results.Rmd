@@ -7,66 +7,245 @@ date: "2024-09-13"
 ```{r}
 source("reverse_puls.R")
 
-# read water level
+library(ggplot2)
+library(BSDA)
+
+# read water level files
+# garner
 garner <- read.csv("Inflow_Outflow/Garner_Water_Level_all.csv")
 depth_gar <- garner$Depth.ft
+datetime_gar <- as.POSIXct(garner$DateTime, format = "%m/%d/%y %H:%M")
 
-garner_in_out_test <- get_inflow_outflow_res(depth_gar, 0.01, 1/(12*2.54), 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300)
+# doba5
+doba5 <- read.csv("Inflow_Outflow/DobA5_Water_Level_all.csv")
+depth_da5 <- doba5$Depth.ft
+datetime_da5 <- as.POSIXct(doba5$DateTime, format = "%m/%d/%y %H:%M")
+
+# midtown
+midtown <- read.csv("Inflow_Outflow/Midtown_Water_Level_all.csv")
+depth_mid <- midtown$Depth.ft
+datetime_mid <- as.POSIXct(midtown$DateTime, format = "%m/%d/%y %H:%M")
+
+# baxter
+baxter <- read.csv("Inflow_Outflow/Baxter_Water_Level_all.csv")
+depth_bax <- baxter$Depth.ft
+datetime_bax <- as.POSIXct(baxter$DateTime, format = "%m/%d/%y %H:%M")
+
+garner_in_out_test <- get_inflow_outflow_res(depth_gar, 5/(12*2.54), 0.01, 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300)
 print(garner_in_out_test)
 
 plot(garner_in_out_test$Inflow.cfs[27258:27658], type = "l", col="blue")
 lines(avg_inflow_raw_gar[27256:27656], type = "l", col = "red")
 ```
+```{r}
+set.seed(0)
+garner_max_minus <- get_inflow_outflow_res(depth_gar[27256:27656], -5/(2.54*12), 0.01, 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300)
+```
+
+step by step test
+```{r}
+set.seed(0)
+noise_gar <- add_noise(depth_gar, 0.01)
+min_gar <- noise_gar + (-5/(2.54*12))
+storage_gar_test <- get_storage_diff(min_gar, 320, 145)
+outflow_gar_test <- get_avg_outflow_res(min_gar, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180))
+inflow_gar_test <- get_avg_inflow(storage_gar_test, outflow_gar_test, 300)
+```
 
 Garner
 ```{r}
-# HAVING ISSUE WHEN RUNNING FUNCTION WITH NEGATIVE BIAS VALUES
+# make example reproducible
+#set.seed(0)
 
-bias_values <- seq(-5, 5, by = 0.1)/(2.54*12)
+# matrix of bias values
+bias_values <- seq(-10, 10, by = 0.2)/(2.54*12)
 
-# create an empty dataframe to store the results
-garner_results_df <- data.frame(matrix(ncol = 100, nrow(garner)))
+# Use lapply to run the function for each multiplier value
+garner_results_list <- lapply(bias_values, function(x) get_inflow_outflow_res(depth_gar[27256:27656], bias_values[i], 0.01, 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300))
 
-# loop to run the function 100 times, changing the bias value each time
-for (i in 1:length(bias_values)) {
-  # call the function with the current multiplier
-  garner_results_df[i] <- get_inflow_outflow_res(depth_gar[27256:27656], 0.01, bias_values[i], 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300)
-}
+# Combine the results into a data frame
+garner_results_df <- do.call(cbind, garner_results_list)
+
+# Convert to a data frame if needed
+garner_results_df <- as.data.frame(garner_results_df)
+
+# save results df as csv
+write.csv(garner_results_df, file = "Test_Garner_Inflow_Outflow.csv")
+
+# identify inflow columns
+inflow_cols <- grepl("Inflow.cfs", colnames(garner_results_df))
+
+# identify outflow columns
+outflow_cols <- grepl("Outflow.cfs", colnames(garner_results_df))
+
+# create data frame with only inflow columns
+gar_inflow_df <- garner_results_df[, inflow_cols]
+
+# create data frame with only outflow columns
+gar_outflow_df <- garner_results_df[, outflow_cols]
+
+write.csv(gar_inflow_df, file = "Garner_Inflow_Test.csv")
+write.csv(gar_outflow_df, file = "Garner_Outflow_Test.csv")
+
+```
+
+DobA5
+```{r}
+# make example reproducible
+#set.seed(0)
+
+# matrix of bias values
+bias_values <- seq(-10, 10, by = 0.2)/(2.54*12)
+
+# Use lapply to run the function for each multiplier value
+doba5_results_list <- lapply(bias_values, function(x) get_inflow_outflow_res(depth_da5[8686:9086], bias_values[i], 0.01, 313, 146, 15.5/12, (2.2/25.4)/12, 0.585, (30*pi)/180, 300))
+
+# Combine the results into a data frame
+doba5_results_df <- do.call(cbind, doba5_results_list)
+
+# Convert to a data frame if needed
+doba5_results_df <- as.data.frame(doba5_results_df)
+
+# save results df as csv
+write.csv(doba5_results_df, file = "Test_doba5_Inflow_Outflow.csv")
+
+# identify inflow columns
+inflow_cols <- grepl("Inflow.cfs", colnames(doba5_results_df))
+
+# identify outflow columns
+outflow_cols <- grepl("Outflow.cfs", colnames(doba5_results_df))
+
+# create data frame with only inflow columns
+da5_inflow_df <- doba5_results_df[, inflow_cols]
+
+# create data frame with only outflow columns
+da5_outflow_df <- doba5_results_df[, outflow_cols]
+
+write.csv(da5_inflow_df, file = "doba5_Inflow_Test.csv")
+write.csv(da5_outflow_df, file = "doba5_Outflow_Test.csv")
+```
+
+Midtown
+```{r}
+# make example reproducible
+#set.seed(0)
+
+# matrix of bias values
+bias_values <- seq(-10, 10, by = 0.2)/(2.54*12)
+
+# Use lapply to run the function for each multiplier value
+midtown_results_list <- lapply(bias_values, function(x) get_inflow_outflow_nonres(depth_mid[1289:1689], bias_values[i], 0.01, 510, 143, 27.25/12, 10, 300))
+
+# Combine the results into a data frame
+midtown_results_df <- do.call(cbind, midtown_results_list)
+
+# Convert to a data frame if needed
+midtown_results_df <- as.data.frame(midtown_results_df)
+
+# save results df as csv
+write.csv(midtown_results_df, file = "Test_midtown_Inflow_Outflow.csv")
+
+# identify inflow columns
+inflow_cols <- grepl("Inflow.cfs", colnames(midtown_results_df))
+
+# identify outflow columns
+outflow_cols <- grepl("Outflow.cfs", colnames(midtown_results_df))
+
+# create data frame with only inflow columns
+mid_inflow_df <- midtown_results_df[, inflow_cols]
+
+# create data frame with only outflow columns
+mid_outflow_df <- midtown_results_df[, outflow_cols]
+
+write.csv(mid_inflow_df, file = "midtown_Inflow_Test.csv")
+write.csv(mid_outflow_df, file = "midtown_Outflow_Test.csv")
+```
+
+Baxter
+```{r}
+# make example reproducible
+#set.seed(0)
+
+# matrix of bias values
+bias_values <- seq(-10, 10, by = 0.2)/(2.54*12)
+
+# Use lapply to run the function for each multiplier value
+baxter_results_list <- lapply(bias_values, function(x) get_inflow_outflow_nonres(depth_bax[27203:27603], bias_values[i], 0.01, 60, 100, 12/12, 2.25, 300))
+
+# Combine the results into a data frame
+baxter_results_df <- do.call(cbind, baxter_results_list)
+
+# Convert to a data frame if needed
+baxter_results_df <- as.data.frame(baxter_results_df)
+
+# save results df as csv
+write.csv(baxter_results_df, file = "Test_baxter_Inflow_Outflow.csv")
+
+# identify inflow columns
+inflow_cols <- grepl("Inflow.cfs", colnames(baxter_results_df))
+
+# identify outflow columns
+outflow_cols <- grepl("Outflow.cfs", colnames(baxter_results_df))
+
+# create data frame with only inflow columns
+bax_inflow_df <- baxter_results_df[, inflow_cols]
+
+# create data frame with only outflow columns
+bax_outflow_df <- baxter_results_df[, outflow_cols]
+
+write.csv(bax_inflow_df, file = "baxter_Inflow_Test.csv")
+write.csv(bax_outflow_df, file = "baxter_Outflow_Test.csv")
 ```
 
 95% Confidence Interval Function
 ```{r}
 # Function to calculate 95% confidence intervals for each row in a data frame
 calculate_ci_loop <- function(df) {
-  # Create an empty data frame to store the results
-  ci_df <- data.frame(Lower_CI = numeric(nrow(df)), Upper_CI = numeric(nrow(df)))
+  # Create a matrix to store the results
+  conf_intervals <- matrix(NA, nrow = nrow(df), ncol = 2)
   
   # Loop through each row of the data frame
   for (i in 1:nrow(df)) {
-    # Extract the current row
     row <- df[i, ]
     
-    # Calculate mean and standard error for the row
-    mean_result <- mean(row)
-    sd_result <- sd(row)
-    se_result <- sd_result / sqrt(ncol(df))
+    # Remove NAs from the row to avoid errors in t.test()
+    row <- na.omit(as.numeric(row))
     
-    # Calculate margin of error
-    z_score <- 1.96  # Z-score for 95% confidence
-    margin_of_error <- z_score * se_result
-    
-    # Calculate the confidence interval
-    lower_bound <- mean_result - margin_of_error
-    upper_bound <- mean_result + margin_of_error
-    
-    # Store the results in the data frame
-    ci_df$Lower_CI[i] <- lower_bound
-    ci_df$Upper_CI[i] <- upper_bound
+    # Run t-test to get the confidence interval
+    if (length(row) > 1) {  # t.test needs at least 2 observations
+      t_test_result <- t.test(row, conf.level = 0.95)
+      conf_intervals[i, ] <- t_test_result$conf.int
+    }
   }
   
-  # Return the data frame containing the confidence intervals
-  return(ci_df)
+  # Convert the matrix to a data frame and add column names
+  conf_intervals_df <- as.data.frame(conf_intervals)
+  colnames(conf_intervals_df) <- c("Lower_CI", "Upper_CI")
+  
+  return(conf_intervals_df)
 }
 
+```
+
+Calculate 95% CI for pond inflow/outflow
+```{r}
+garner_ci <- calculate_ci_loop(gar_inflow_df)
+doba5_ci <- calculate_ci_loop(da5_inflow_df)
+midtown_ci <- calculate_ci_loop(mid_inflow_df)
+baxter_ci <- calculate_ci_loop(bax_inflow_df)
+```
+
+Plot results from 95% confidence interval
+```{r}
+plot_df <- data.frame(x = datetime_bax[27205:27603], mean_value = bax_inflow_df$Inflow.cfs.50[3:401], lower_bound = bax_inflow_df$Inflow.cfs.1[3:401], upper_bound = bax_inflow_df$Inflow.cfs.100[3:401]) 
+  
+# Create the plot
+ggplot(plot_df, aes(x = x)) +
+  geom_line(aes(y = mean_value), color = "transparent", size = 0.5) +  # Line for the mean
+  geom_ribbon(aes(ymin = lower_bound, ymax = upper_bound), fill = "blue", alpha = 0.2) +  # Shaded area
+  labs(title = "Mean with 95% Confidence Interval",
+       x = "X-axis",
+       y = "Value") +
+  theme_minimal()
 ```
 

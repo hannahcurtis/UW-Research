@@ -96,3 +96,21 @@ get_inflow_outflow_res <- function(elevation, ft_bias, ft_noise, L_basin, W_basi
   # return the dataframe
   return(result_df)
 }
+
+# calculates the inflow and outflow for non-restrictive ponds
+get_inflow_outflow_nonres <- function(elevation, ft_bias, ft_noise, L_basin, W_basin, H_0, L_w, time_delta) {
+  # add noise to each elevation measurement
+  noise_elevation <- add_noise(elevation, ft_noise)
+  # add bias to each elevation measurement
+  bias_elevation <- noise_elevation + ft_bias
+  # calculate storage diff
+  storage_diff <- get_storage_diff(bias_elevation, L_basin, W_basin)
+  # calculate average outflow
+  avg_outflow <- get_avg_outflow_nonres(bias_elevation, H_0, L_w)
+  # calculate average inflow
+  avg_inflow <- get_avg_inflow(storage_diff, avg_outflow, time_delta)
+  # create dataframe with inflow and outflow
+  result_df <- data.frame(Inflow.cfs = avg_inflow, Outflow.cfs = avg_outflow)
+  # return the dataframe
+  return(result_df)
+}
