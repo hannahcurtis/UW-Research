@@ -9,29 +9,34 @@ source("reverse_puls.R")
 
 library(ggplot2)
 library(BSDA)
+library(plyr)
 
 # read water level files
 # garner
 garner <- read.csv("Inflow_Outflow/Garner_Water_Level_all.csv")
 depth_gar <- garner$Depth.ft
+smooth_depth_gar <- smooth_elevation(depth_gar)
 datetime_gar <- as.POSIXct(garner$DateTime, format = "%m/%d/%y %H:%M")
 
 # doba5
 doba5 <- read.csv("Inflow_Outflow/DobA5_Water_Level_all.csv")
 depth_da5 <- doba5$Depth.ft
+smooth_depth_da5 <- smooth_elevation(depth_da5)
 datetime_da5 <- as.POSIXct(doba5$DateTime, format = "%m/%d/%y %H:%M")
 
 # midtown
 midtown <- read.csv("Inflow_Outflow/Midtown_Water_Level_all.csv")
 depth_mid <- midtown$Depth.ft
+smooth_depth_mid <- smooth_elevation(depth_mid)
 datetime_mid <- as.POSIXct(midtown$DateTime, format = "%m/%d/%y %H:%M")
 
 # baxter
 baxter <- read.csv("Inflow_Outflow/Baxter_Water_Level_all.csv")
 depth_bax <- baxter$Depth.ft
+smooth_depth_bax <- smooth_elevation(depth_bax)
 datetime_bax <- as.POSIXct(baxter$DateTime, format = "%m/%d/%y %H:%M")
 
-garner_in_out_test <- get_inflow_outflow_res(depth_gar, 5/(12*2.54), 0.01, 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300)
+garner_in_out_test <- get_inflow_outflow_res(depth_gar, 1/(12*2.54), 0.01, 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300)
 print(garner_in_out_test)
 
 plot(garner_in_out_test$Inflow.cfs[27258:27658], type = "l", col="blue")
@@ -54,6 +59,8 @@ inflow_gar_test <- get_avg_inflow(storage_gar_test, outflow_gar_test, 300)
 
 Garner
 ```{r}
+source("reverse_puls.R")
+
 # make example reproducible
 #set.seed(0)
 
@@ -61,7 +68,7 @@ Garner
 bias_values <- seq(-10, 10, by = 0.2)/(2.54*12)
 
 # Use lapply to run the function for each multiplier value
-garner_results_list <- lapply(bias_values, function(x) get_inflow_outflow_res(depth_gar[27256:27656], bias_values[i], 0.01, 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300))
+garner_results_list <- lapply(bias_values, function(x) get_inflow_outflow_res(depth_gar[27256:27656], x, 0.01, 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300))
 
 # Combine the results into a data frame
 garner_results_df <- do.call(cbind, garner_results_list)
@@ -87,18 +94,21 @@ gar_outflow_df <- garner_results_df[, outflow_cols]
 write.csv(gar_inflow_df, file = "Garner_Inflow_Test.csv")
 write.csv(gar_outflow_df, file = "Garner_Outflow_Test.csv")
 
+# smoothed inflow/outflow with no bias
+smoothed_results_gar <- get_inflow_outflow_res(smooth_depth_gar[27256:27656], 0, 0, 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300)
+
 ```
 
 DobA5
 ```{r}
 # make example reproducible
-#set.seed(0)
+set.seed(0)
 
 # matrix of bias values
 bias_values <- seq(-10, 10, by = 0.2)/(2.54*12)
 
 # Use lapply to run the function for each multiplier value
-doba5_results_list <- lapply(bias_values, function(x) get_inflow_outflow_res(depth_da5[8686:9086], bias_values[i], 0.01, 313, 146, 15.5/12, (2.2/25.4)/12, 0.585, (30*pi)/180, 300))
+doba5_results_list <- lapply(bias_values, function(x) get_inflow_outflow_res(depth_da5[8686:9086], x, 0.01, 313, 146, 15.5/12, (2.2/25.4)/12, 0.585, (30*pi)/180, 300))
 
 # Combine the results into a data frame
 doba5_results_df <- do.call(cbind, doba5_results_list)
@@ -123,18 +133,22 @@ da5_outflow_df <- doba5_results_df[, outflow_cols]
 
 write.csv(da5_inflow_df, file = "doba5_Inflow_Test.csv")
 write.csv(da5_outflow_df, file = "doba5_Outflow_Test.csv")
+
+# smoothed inflow/outflow with no bias
+smoothed_results_da5 <- get_inflow_outflow_res(smooth_depth_da5[8686:9086], 0, 0, 313, 146, 15.5/12, (2.2/25.4)/12, 0.585, (30*pi)/180, 300)
+
 ```
 
 Midtown
 ```{r}
 # make example reproducible
-#set.seed(0)
+set.seed(0)
 
 # matrix of bias values
-bias_values <- seq(-10, 10, by = 0.2)/(2.54*12)
+bias_values <- seq(-5, 5, by = 0.1)/(2.54*12)
 
 # Use lapply to run the function for each multiplier value
-midtown_results_list <- lapply(bias_values, function(x) get_inflow_outflow_nonres(depth_mid[1289:1689], bias_values[i], 0.01, 510, 143, 27.25/12, 10, 300))
+midtown_results_list <- lapply(bias_values, function(x) get_inflow_outflow_nonres(depth_mid[1289:1689], x, 0.01, 510, 143, 27.25/12, 10, 300))
 
 # Combine the results into a data frame
 midtown_results_df <- do.call(cbind, midtown_results_list)
@@ -159,18 +173,22 @@ mid_outflow_df <- midtown_results_df[, outflow_cols]
 
 write.csv(mid_inflow_df, file = "midtown_Inflow_Test.csv")
 write.csv(mid_outflow_df, file = "midtown_Outflow_Test.csv")
+
+# smoothed inflow/outflow with no bias
+smoothed_results_mid <- get_inflow_outflow_nonres(smooth_depth_mid[1289:1689], 0, 0, 510, 143, 27.25/12, 10, 300)
+
 ```
 
 Baxter
 ```{r}
 # make example reproducible
-#set.seed(0)
+set.seed(0)
 
 # matrix of bias values
-bias_values <- seq(-10, 10, by = 0.2)/(2.54*12)
+bias_values <- seq(-5, 5, by = 0.1)/(2.54*12)
 
 # Use lapply to run the function for each multiplier value
-baxter_results_list <- lapply(bias_values, function(x) get_inflow_outflow_nonres(depth_bax[27203:27603], bias_values[i], 0.01, 60, 100, 12/12, 2.25, 300))
+baxter_results_list <- lapply(bias_values, function(x) get_inflow_outflow_nonres(depth_bax[27203:27603], x, 0.01, 60, 100, 12/12, 2.25, 300))
 
 # Combine the results into a data frame
 baxter_results_df <- do.call(cbind, baxter_results_list)
@@ -195,6 +213,10 @@ bax_outflow_df <- baxter_results_df[, outflow_cols]
 
 write.csv(bax_inflow_df, file = "baxter_Inflow_Test.csv")
 write.csv(bax_outflow_df, file = "baxter_Outflow_Test.csv")
+
+# smoothed inflow/outflow with no bias
+smoothed_results_bax <- get_inflow_outflow_nonres(smooth_depth_bax[27203:27603], 0, 0, 60, 100, 12/12, 2.25, 300)
+
 ```
 
 95% Confidence Interval Function
@@ -229,23 +251,82 @@ calculate_ci_loop <- function(df) {
 
 Calculate 95% CI for pond inflow/outflow
 ```{r}
-garner_ci <- calculate_ci_loop(gar_inflow_df)
-doba5_ci <- calculate_ci_loop(da5_inflow_df)
-midtown_ci <- calculate_ci_loop(mid_inflow_df)
-baxter_ci <- calculate_ci_loop(bax_inflow_df)
+# Garner
+garner_ci_inflow <- calculate_ci_loop(gar_inflow_df)
+garner_ci_outflow <- calculate_ci_loop(gar_outflow_df)
+# DobA5
+doba5_ci_inflow <- calculate_ci_loop(da5_inflow_df)
+doba5_ci_outflow <- calculate_ci_loop(da5_outflow_df)
+# Midtown
+midtown_ci_inflow <- calculate_ci_loop(mid_inflow_df)
+midtown_ci_outflow <- calculate_ci_loop(mid_outflow_df)
+# Baxter
+baxter_ci_inflow <- calculate_ci_loop(bax_inflow_df)
+baxter_ci_outflow <- calculate_ci_loop(bax_outflow_df)
 ```
 
-Plot results from 95% confidence interval
+Plot results from 95% confidence interval: Garner
 ```{r}
-plot_df <- data.frame(x = datetime_bax[27205:27603], mean_value = bax_inflow_df$Inflow.cfs.50[3:401], lower_bound = bax_inflow_df$Inflow.cfs.1[3:401], upper_bound = bax_inflow_df$Inflow.cfs.100[3:401]) 
+# Right now using range of values instead of confidence interval
+plot_df <- data.frame(x = datetime_gar[27258:27656], mean_value_inflow = smoothed_results_gar$Inflow.cfs[3:401], lower_bound_inflow = gar_inflow_df$Inflow.cfs.1[3:401], upper_bound_inflow = gar_inflow_df$Inflow.cfs.100[3:401], lower_ci_inflow = garner_ci_inflow$Lower_CI[3:401], upper_ci_inflow = garner_ci_inflow$Upper_CI[3:401], mean_value_outflow = smoothed_results_gar$Outflow.cfs[3:401], lower_bound_outflow = gar_outflow_df$Outflow.cfs.1[3:401], upper_bound_outflow = gar_outflow_df$Outflow.cfs.100[3:401], lower_ci_outflow = garner_ci_outflow$Lower_CI[3:401], upper_ci_outflow = garner_ci_outflow$Upper_CI[3:401]) 
   
 # Create the plot
 ggplot(plot_df, aes(x = x)) +
-  geom_line(aes(y = mean_value), color = "transparent", size = 0.5) +  # Line for the mean
-  geom_ribbon(aes(ymin = lower_bound, ymax = upper_bound), fill = "blue", alpha = 0.2) +  # Shaded area
+  geom_line(aes(y = mean_value_inflow), color = "blue", size = 0.5) +  # Line for the mean inflow
+  geom_line(aes(y = mean_value_outflow), color = "red", size = 0.5) +  # Line for the mean outflow
+  geom_ribbon(aes(ymin = lower_ci_inflow, ymax = upper_ci_inflow), fill = "blue", alpha = 0.2) +  # Shaded area inflow
+  geom_ribbon(aes(ymin = lower_ci_outflow, ymax = upper_ci_outflow), fill = "red", alpha = 0.2) +  # Shaded area outflow
   labs(title = "Mean with 95% Confidence Interval",
-       x = "X-axis",
-       y = "Value") +
+       x = "DateTime",
+       y = "Flow (cfs)") +
+  theme_minimal()
+```
+
+Plot results from 95% confidence interval: DobA5
+```{r}
+plot_df <- data.frame(x = datetime_da5[8688:9086], mean_value_inflow = smoothed_results_da5$Inflow.cfs[3:401], lower_bound_inflow = da5_inflow_df$Inflow.cfs.1[3:401], upper_bound_inflow = da5_inflow_df$Inflow.cfs.100[3:401], lower_ci_inflow = doba5_ci_inflow$Lower_CI[3:401], upper_ci_inflow = doba5_ci_inflow$Upper_CI[3:401], mean_value_outflow = smoothed_results_da5$Outflow.cfs[3:401], lower_bound_outflow = da5_outflow_df$Outflow.cfs.1[3:401], upper_bound_outflow = da5_outflow_df$Outflow.cfs.100[3:401], lower_ci_outflow = doba5_ci_outflow$Lower_CI[3:401], upper_ci_outflow = doba5_ci_outflow$Upper_CI[3:401]) 
+  
+# Create the plot
+ggplot(plot_df, aes(x = x)) +
+  geom_line(aes(y = mean_value_inflow), color = "blue", size = 0.5) +  # Line for the mean inflow
+  geom_line(aes(y = mean_value_outflow), color = "red", size = 0.5) +  # Line for the mean outflow
+  geom_ribbon(aes(ymin = lower_ci_inflow, ymax = upper_ci_inflow), fill = "blue", alpha = 0.2) +  # Shaded area inflow
+  geom_ribbon(aes(ymin = lower_ci_outflow, ymax = upper_ci_outflow), fill = "red", alpha = 0.2) +  # Shaded area outflow
+  labs(title = "Mean with 95% Confidence Interval",
+       x = "DateTime",
+       y = "Flow (cfs)") +
+  theme_minimal()
+```
+
+Plot results from 95% confidence interval: Baxter
+```{r}
+plot_df <- data.frame(x = datetime_bax[27205:27603], mean_value_inflow = smoothed_results_bax$Inflow.cfs[3:401], lower_bound_inflow = bax_inflow_df$Inflow.cfs.1[3:401], upper_bound_inflow = bax_inflow_df$Inflow.cfs.100[3:401], lower_ci_inflow = baxter_ci_inflow$Lower_CI[3:401], upper_ci_inflow = baxter_ci_inflow$Upper_CI[3:401], mean_value_outflow = smoothed_results_bax$Outflow.cfs[3:401], lower_bound_outflow = bax_outflow_df$Outflow.cfs.1[3:401], upper_bound_outflow = bax_outflow_df$Outflow.cfs.100[3:401], lower_ci_outflow = baxter_ci_outflow$Lower_CI[3:401], upper_ci_outflow = baxter_ci_outflow$Upper_CI[3:401]) 
+  
+# Create the plot
+ggplot(plot_df, aes(x = x)) +
+  geom_line(aes(y = mean_value_inflow), color = "blue", size = 0.5) +  # Line for the mean inflow
+  geom_line(aes(y = mean_value_outflow), color = "red", size = 0.5) +  # Line for the mean outflow
+  geom_ribbon(aes(ymin = lower_ci_inflow, ymax = upper_ci_inflow), fill = "blue", alpha = 0.2) +  # Shaded area inflow
+  geom_ribbon(aes(ymin = lower_ci_outflow, ymax = upper_ci_outflow), fill = "red", alpha = 0.2) +  # Shaded area outflow
+  labs(title = "Mean with 95% Confidence Interval",
+       x = "DateTime",
+       y = "Flow (cfs)") +
+  theme_minimal()
+```
+
+Plot results from 95% confidence interval: Midtown
+```{r}
+plot_df <- data.frame(x = datetime_mid[1291:1689], mean_value_inflow = smoothed_results_mid$Inflow.cfs[3:401], lower_bound_inflow = mid_inflow_df$Inflow.cfs.1[3:401], upper_bound_inflow = mid_inflow_df$Inflow.cfs.100[3:401], lower_ci_inflow = midtown_ci_inflow$Lower_CI[3:401], upper_ci_inflow = midtown_ci_inflow$Upper_CI[3:401], mean_value_outflow = smoothed_results_mid$Outflow.cfs[3:401], lower_bound_outflow = mid_outflow_df$Outflow.cfs.1[3:401], upper_bound_outflow = mid_outflow_df$Outflow.cfs.100[3:401], lower_ci_outflow = midtown_ci_outflow$Lower_CI[3:401], upper_ci_outflow = midtown_ci_outflow$Upper_CI[3:401]) 
+  
+# Create the plot
+ggplot(plot_df, aes(x = x)) +
+  geom_line(aes(y = mean_value_inflow), color = "blue", size = 0.5) +  # Line for the mean inflow
+  geom_line(aes(y = mean_value_outflow), color = "red", size = 0.5) +  # Line for the mean outflow
+  geom_ribbon(aes(ymin = lower_ci_inflow, ymax = upper_ci_inflow), fill = "blue", alpha = 0.2) +  # Shaded area inflow
+  geom_ribbon(aes(ymin = lower_ci_outflow, ymax = upper_ci_outflow), fill = "red", alpha = 0.2) +  # Shaded area outflow
+  labs(title = "Mean with 95% Confidence Interval",
+       x = "DateTime",
+       y = "Flow (cfs)") +
   theme_minimal()
 ```
 

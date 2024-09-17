@@ -1,8 +1,11 @@
 # Function to input a water level dataframe and get inflows and outflows
 
+# make example reproducible
+#set.seed(0)
+
 # function to add a random value of the average noise to each water level measurement
 add_noise <- function(elevation, ft_noise) {
-  return(elevation + rnorm(length(elevation), 0, ft_noise/2))
+  return(elevation + rnorm(length(elevation), 0, ft_noise))
 }
 
 # smoothing function (can change weights)
