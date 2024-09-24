@@ -10,51 +10,464 @@ source("reverse_puls.R")
 library(ggplot2)
 library(BSDA)
 library(plyr)
+library(RColorBrewer)
 
 # read water level files
 # garner
-garner <- read.csv("Inflow_Outflow/Garner_Water_Level_all.csv")
+garner <- read.csv("Garner/Garner_Water_Level_all.csv")
 depth_gar <- garner$Depth.ft
 smooth_depth_gar <- smooth_elevation(depth_gar)
 datetime_gar <- as.POSIXct(garner$DateTime, format = "%m/%d/%y %H:%M")
 
 # doba5
-doba5 <- read.csv("Inflow_Outflow/DobA5_Water_Level_all.csv")
+doba5 <- read.csv("DobA5/DobA5_Water_Level_all.csv")
 depth_da5 <- doba5$Depth.ft
 smooth_depth_da5 <- smooth_elevation(depth_da5)
 datetime_da5 <- as.POSIXct(doba5$DateTime, format = "%m/%d/%y %H:%M")
 
 # midtown
-midtown <- read.csv("Inflow_Outflow/Midtown_Water_Level_all.csv")
+midtown <- read.csv("Midtown/Midtown_Water_Level_all.csv")
 depth_mid <- midtown$Depth.ft
 smooth_depth_mid <- smooth_elevation(depth_mid)
 datetime_mid <- as.POSIXct(midtown$DateTime, format = "%m/%d/%y %H:%M")
 
 # baxter
-baxter <- read.csv("Inflow_Outflow/Baxter_Water_Level_all.csv")
+baxter <- read.csv("Baxter/Baxter_Water_Level_all.csv")
 depth_bax <- baxter$Depth.ft
 smooth_depth_bax <- smooth_elevation(depth_bax)
 datetime_bax <- as.POSIXct(baxter$DateTime, format = "%m/%d/%y %H:%M")
 
-garner_in_out_test <- get_inflow_outflow_res(depth_gar, 1/(12*2.54), 0.01, 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300)
-print(garner_in_out_test)
+# read EPA-SWMM stage and outflow file
+swmm_data <- read.csv("EPASWMM_Outflow.csv")
+swmm_outlet_stage <- swmm_data$Depth.Outlet.ft
+swmm_pond_stage <- swmm_data$Depth.Pond.ft
+swmm_outflow <- swmm_data$Outflow.cfs
+swmm_time <- as.POSIXct(swmm_data$Hours, format = "%H:%M")
 
-plot(garner_in_out_test$Inflow.cfs[27258:27658], type = "l", col="blue")
-lines(avg_inflow_raw_gar[27256:27656], type = "l", col = "red")
+# read EPA-SWMM stage and outflow for restrictive pond
+swmm_res_data <- read.csv("EPASWMM_Outflow_Res.csv")
+swmm_res_outlet_stage <- swmm_res_data$Depth.Outlet.ft
+swmm_res_outflow <- swmm_res_data$Outflow.cfs
+swmm_res_time <- as.POSIXct(swmm_res_data$Hours, format = "%H:%M")
+
 ```
+Colors
 ```{r}
-set.seed(0)
-garner_max_minus <- get_inflow_outflow_res(depth_gar[27256:27656], -5/(2.54*12), 0.01, 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300)
+
+# Extract colors from a specific palette
+# For example, using the "Set1" palette with 3 colors
+colors <- brewer.pal(4, "PiYG")
+
+colors_red <- brewer.pal(5, "Reds")
+
+colors_blue <- brewer.pal(5, "Blues")
+
+colors_green <- brewer.pal(5, "Greens")
 ```
 
-step by step test
+Get smoothed results
 ```{r}
-set.seed(0)
-noise_gar <- add_noise(depth_gar, 0.01)
-min_gar <- noise_gar + (-5/(2.54*12))
-storage_gar_test <- get_storage_diff(min_gar, 320, 145)
-outflow_gar_test <- get_avg_outflow_res(min_gar, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180))
-inflow_gar_test <- get_avg_inflow(storage_gar_test, outflow_gar_test, 300)
+# 3-point average
+smoothed_depth_swmm <- smooth_elevation(swmm_outlet_stage)
+smoothed_results_swmm <- get_inflow_outflow_swmm(smoothed_depth_swmm, 0, 0, 184, 98, 0, 3.33, 3.3, 60)
+# Transform to 2-min
+depth_swmm_2min <- aggregate_data(swmm_data, "Hours", "Depth.Outlet.ft", 2)
+time_swmm_2min <- as.POSIXct(depth_swmm_2min$Hours, format = "%H:%M")
+twomin_results_swmm <- get_inflow_outflow_swmm(depth_swmm_2min$Depth.Outlet.ft, 0, 0, 184, 98, 0, 3.33, 3.3, 120)
+# Transform to 3-min
+depth_swmm_3min <- aggregate_data(swmm_data, "Hours", "Depth.Outlet.ft", 3)
+time_swmm_3min <- as.POSIXct(depth_swmm_3min$Hours, format = "%H:%M")
+threemin_results_swmm <- get_inflow_outflow_swmm(depth_swmm_3min$Depth.Outlet.ft, 0, 0, 184, 98, 0, 3.33, 3.3, 180)
+# Transform to 5-min
+depth_swmm_5min <- aggregate_data(swmm_data, "Hours", "Depth.Outlet.ft", 5)
+time_swmm_5min <- as.POSIXct(depth_swmm_5min$Hours, format = "%H:%M")
+fivemin_results_swmm <- get_inflow_outflow_swmm(depth_swmm_5min$Depth.Outlet.ft, 0, 0, 184, 98, 0, 3.33, 3.3, 300)
+# Transform to 15-min
+depth_swmm_15min <- aggregate_to_15min(depth_swmm_5min, "Hours", "Depth.Outlet.ft")
+fifteenmin_results_swmm <- get_inflow_outflow_swmm(depth_swmm_15min$Depth.Outlet.ft, 0, 0, 184, 98, 0, 3.33, 3.3, 900)
+time_swmm_15min <- as.POSIXct(depth_swmm_15min$Hours, format = "%H:%M")
+
+```
+
+Get smoothed results restrictive pond
+```{r}
+# 3-point average
+smoothed_depth_swmm_res <- smooth_elevation(swmm_res_outlet_stage)
+smoothed_results_swmm_res <- get_inflow_outflow_swmm(smoothed_depth_swmm_res, 0, 0, 184, 98, 0, 3.33, 3.3, 60)
+# Transform to 2-min
+depth_swmm_res_2min <- aggregate_data(swmm_res_data, "Hours", "Depth.Outlet.ft", 2)
+time_swmm_res_2min <- as.POSIXct(depth_swmm_res_2min$Hours, format = "%H:%M")
+twomin_results_swmm_res <- get_inflow_outflow_swmm(depth_swmm_res_2min$Depth.Outlet.ft, 0, 0, 184, 98, 0, 3.33, 3.3, 120)
+# Transform to 3-min
+depth_swmm_res_3min <- aggregate_data(swmm_res_data, "Hours", "Depth.Outlet.ft", 3)
+time_swmm_res_3min <- as.POSIXct(depth_swmm_res_3min$Hours, format = "%H:%M")
+threemin_results_swmm_res <- get_inflow_outflow_swmm(depth_swmm_res_3min$Depth.Outlet.ft, 0, 0, 184, 98, 0, 3.33, 3.3, 180)
+# Transform to 5-min
+depth_swmm_res_5min <- aggregate_data(swmm_res_data, "Hours", "Depth.Outlet.ft", 5)
+time_swmm_res_5min <- as.POSIXct(depth_swmm_res_5min$Hours, format = "%H:%M")
+fivemin_results_swmm_res <- get_inflow_outflow_swmm(depth_swmm_res_5min$Depth.Outlet.ft, 0, 0, 184, 98, 0, 3.33, 3.3, 300)
+# Transform to 15-min
+depth_swmm_res_15min <- aggregate_to_15min(depth_swmm_res_5min, "Hours", "Depth.Outlet.ft")
+fifteenmin_results_swmm_res <- get_inflow_outflow_swmm(depth_swmm_res_15min$Depth.Outlet.ft, 0, 0, 184, 98, 0, 3.33, 3.3, 900)
+time_swmm_res_15min <- as.POSIXct(depth_swmm_res_15min$Hours, format = "%H:%M")
+
+```
+
+Smoothing Results Differences
+```{r}
+# Calculate percent and magnitude difference from the base results
+
+# 3-point average
+swmm_smoothed_inflow_diff <- calc_magnitude_difference(swmm_results_base$Inflow.cfs, smoothed_results_swmm$Inflow.cfs)
+swmm_smoothed_outflow_diff <- calc_magnitude_difference(swmm_results_base$Outflow.cfs, smoothed_results_swmm$Outflow.cfs)
+swmm_smoothed_inflow_percent_diff <- calc_percent_difference(swmm_results_base$Inflow.cfs, smoothed_results_swmm$Inflow.cfs)
+swmm_smoothed_outflow_percent_diff <- calc_percent_difference(swmm_results_base$Outflow.cfs, smoothed_results_swmm$Outflow.cfs)
+
+# 2-min average
+swmm_twomin_diff_data <- read.csv("SWMM_2min_Inflow_Outflow.csv")
+swmm_twomin_inflow_diff <- swmm_twomin_diff_data$Inflow.Diff
+swmm_twomin_outflow_diff <- swmm_twomin_diff_data$Outflow.Diff
+swmm_twomin_inflow_percent_diff <- swmm_twomin_diff_data$Inflow...Diff
+swmm_twomin_outflow_percent_diff <- swmm_twomin_diff_data$Outflow...Diff
+
+# 3-min average
+swmm_threemin_diff_data <- read.csv("SWMM_3min_Inflow_Outflow.csv")
+swmm_threemin_inflow_diff <- swmm_threemin_diff_data$Inflow.Diff
+swmm_threemin_outflow_diff <- swmm_threemin_diff_data$Outflow.Diff
+swmm_threemin_inflow_percent_diff <- swmm_threemin_diff_data$Inflow...Diff
+swmm_threemin_outflow_percent_diff <- swmm_threemin_diff_data$Outflow...Diff
+
+# 5-min average
+swmm_fivemin_diff_data <- read.csv("SWMM_5min_Inflow_Outflow.csv")
+swmm_fivemin_inflow_diff <- swmm_fivemin_diff_data$Inflow.Diff
+swmm_fivemin_outflow_diff <- swmm_fivemin_diff_data$Outflow.Diff
+swmm_fivemin_inflow_percent_diff <- swmm_fivemin_diff_data$Inflow...Diff
+swmm_fivemin_outflow_percent_diff <- swmm_fivemin_diff_data$Outflow...Diff
+
+```
+
+Smoothing results differences restrictive pond
+```{r}
+# Calculate percent and magnitude difference from the base results
+
+# 3-point average
+swmm_res_smoothed_inflow_diff <- calc_magnitude_difference(swmm_res_results_base$Inflow.cfs, smoothed_results_swmm_res$Inflow.cfs)
+swmm_res_smoothed_outflow_diff <- calc_magnitude_difference(swmm_res_results_base$Outflow.cfs, smoothed_results_swmm_res$Outflow.cfs)
+swmm_res_smoothed_inflow_percent_diff <- calc_percent_difference(swmm_res_results_base$Inflow.cfs, smoothed_results_swmm_res$Inflow.cfs)
+swmm_res_smoothed_outflow_percent_diff <- calc_percent_difference(swmm_res_results_base$Outflow.cfs, smoothed_results_swmm_res$Outflow.cfs)
+
+# 2-min average
+swmm_res_twomin_diff_data <- read.csv("swmm_res_2min_Inflow_Outflow.csv")
+swmm_res_twomin_inflow_diff <- swmm_res_twomin_diff_data$Inflow.Diff
+swmm_res_twomin_outflow_diff <- swmm_res_twomin_diff_data$Outflow.Diff
+swmm_res_twomin_inflow_percent_diff <- swmm_res_twomin_diff_data$Inflow...Diff
+swmm_res_twomin_outflow_percent_diff <- swmm_res_twomin_diff_data$Outflow...Diff
+
+# 3-min average
+swmm_res_threemin_diff_data <- read.csv("swmm_res_3min_Inflow_Outflow.csv")
+swmm_res_threemin_inflow_diff <- swmm_res_threemin_diff_data$Inflow.Diff
+swmm_res_threemin_outflow_diff <- swmm_res_threemin_diff_data$Outflow.Diff
+swmm_res_threemin_inflow_percent_diff <- swmm_res_threemin_diff_data$Inflow...Diff
+swmm_res_threemin_outflow_percent_diff <- swmm_res_threemin_diff_data$Outflow...Diff
+
+# 5-min average
+swmm_res_fivemin_diff_data <- read.csv("swmm_res_5min_Inflow_Outflow.csv")
+swmm_res_fivemin_inflow_diff <- swmm_res_fivemin_diff_data$Inflow.Diff
+swmm_res_fivemin_outflow_diff <- swmm_res_fivemin_diff_data$Outflow.Diff
+swmm_res_fivemin_inflow_percent_diff <- swmm_res_fivemin_diff_data$Inflow...Diff
+swmm_res_fivemin_outflow_percent_diff <- swmm_res_fivemin_diff_data$Outflow...Diff
+```
+
+Plot smoothed results
+```{r}
+
+plot(swmm_time[1:325], swmm_results_base$Inflow.cfs[1:325], type = "l", xlab = "Time", ylab = "Flow (cfs)", main = "SWMM Inflow/Outflow with Smoothing", lwd = 1, ylim=c(-1, max(swmm_results_plus5cm$Inflow.cfs)), col = colors[1])
+     lines(swmm_time[1:325], swmm_outflow[1:325], col = colors[1], lwd = 1, lty = 3)
+     lines(swmm_time[1:325], smoothed_results_swmm$Inflow.cfs[1:325], col = colors[2], lwd = 1)
+     lines(swmm_time[1:325], smoothed_results_swmm$Outflow.cfs[1:325], col = colors[2], lwd = 1, lty = 3)
+     lines(time_swmm_5min[1:65], fivemin_results_swmm$Inflow.cfs[1:65], col = colors[4], lwd = 1)
+     lines(time_swmm_5min[1:65], fivemin_results_swmm$Outflow.cfs[1:65], col = colors[4], lwd = 1, lty = 3)
+     lines(time_swmm_2min[1:162], twomin_results_swmm$Inflow.cfs[1:162], col = colors[3], lwd = 1)
+     lines(time_swmm_2min[1:162], twomin_results_swmm$Outflow.cfs[1:162], col = colors[3], lwd = 1, lty = 3)
+     grid()
+       legend("topright", legend = c("Inflow Raw", "Inflow Smoothed", "Inflow 2 Min", "Inflow 5 min", "Outflow Raw", "Outflow Smoothed", "Outflow 2 Min", "Outflow 5 min"), col = c(colors[1], colors[2], colors[3], colors[4], colors[1], colors[2], colors[3], colors[4]), lty = c(1, 1, 1, 1, 3, 3, 3, 3), lwd = 2)
+
+```
+
+Plot smoothed results differences 
+```{r}
+# Plot showing smoothing differences
+plot(swmm_time[1:325], swmm_smoothed_inflow_diff[1:325], type = "l", col = "forestgreen", xlab = "Time (hours)", ylab = "Flow (cfs)", main = "SWMM Inflow/Outflow Smoothing Differences", ylim = c(-10,20), lty = 3)
+lines(swmm_time[1:325], swmm_smoothed_outflow_diff[1:325], col = "forestgreen")
+lines(time_swmm_5min[1:65], swmm_fivemin_inflow_diff[1:65], col = "palegreen")
+lines(time_swmm_5min[1:65], swmm_fivemin_outflow_diff[1:65], col = "palegreen", lty = 3)
+lines(time_swmm_2min[1:162], swmm_twomin_inflow_diff[1:162], col = "palegreen3")
+lines(time_swmm_2min[1:162], swmm_twomin_outflow_diff[1:162], col = "palegreen3", lty = 3)
+grid()
+legend("topright", legend = c("Inflow Raw", "Inflow Smoothed", "Inflow 2 Min", "Inflow 5 min", "Outflow Raw", "Outflow Smoothed", "Outflow 2 Min", "Outflow 5 min"), col = c("black", "forestgreen", "palegreen3", "palegreen", "black", "forestgreen", "palegreen3", "palegreen"), lty = c(1, 1, 1, 1, 3, 3, 3, 3), lwd = 2, cex = 0.8)
+```
+
+Plot smoothed results restrictive
+```{r}
+
+plot(swmm_res_time[1:325], swmm_res_results_base$Inflow.cfs[1:325], type = "l", xlab = "Time", ylab = "Flow (cfs)", main = "SWMM Inflow/Outflow with Smoothing", lwd = 1, ylim=c(-1, max(swmm_res_results_plus5cm$Inflow.cfs)), col = colors[1])
+     lines(swmm_res_time[1:325], swmm_res_outflow[1:325], col = colors[1], lwd = 1, lty = 3)
+     lines(swmm_res_time[1:325], smoothed_results_swmm_res$Inflow.cfs[1:325], col = colors[2], lwd = 1)
+     lines(swmm_res_time[1:325], smoothed_results_swmm_res$Outflow.cfs[1:325], col = colors[2], lwd = 1, lty = 3)
+     lines(time_swmm_res_5min[1:65], fivemin_results_swmm_res$Inflow.cfs[1:65], col = colors[4], lwd = 1)
+     lines(time_swmm_res_5min[1:65], fivemin_results_swmm_res$Outflow.cfs[1:65], col = colors[4], lwd = 1, lty = 3)
+     lines(time_swmm_res_2min[1:162], twomin_results_swmm_res$Inflow.cfs[1:162], col = colors[3], lwd = 1)
+     lines(time_swmm_res_2min[1:162], twomin_results_swmm_res$Outflow.cfs[1:162], col = colors[3], lwd = 1, lty = 3)
+     grid()
+       legend("topright", legend = c("Inflow Raw", "Inflow Smoothed", "Inflow 2 Min", "Inflow 5 min", "Outflow Raw", "Outflow Smoothed", "Outflow 2 Min", "Outflow 5 min"), col = c(colors[1], colors[2], colors[3], colors[4], colors[1], colors[2], colors[3], colors[4]), lty = c(1, 1, 1, 1, 3, 3, 3, 3), lwd = 2)
+
+```
+
+Plot smoothed results differences restrictive
+```{r}
+
+# Plot showing smoothing differences
+plot(swmm_time[1:325], swmm_smoothed_inflow_diff[1:325], type = "l", col = colors[2], xlab = "Time (hours)", ylab = "Flow (cfs)", main = "SWMM Inflow/Outflow Smoothing Differences", ylim = c(-10,20), lty = 3)
+lines(swmm_time[1:325], swmm_smoothed_outflow_diff[1:325], col = colors[2])
+lines(time_swmm_5min[1:65], swmm_fivemin_inflow_diff[1:65], col = colors[4])
+lines(time_swmm_5min[1:65], swmm_fivemin_outflow_diff[1:65], col = colors[4], lty = 3)
+lines(time_swmm_2min[1:162], swmm_twomin_inflow_diff[1:162], col = colors[3])
+lines(time_swmm_2min[1:162], swmm_twomin_outflow_diff[1:162], col = colors[3], lty = 3)
+grid()
+legend("topright", legend = c("Inflow Smoothed Difference", "Inflow 2 Min Difference", "Inflow 5 min Difference", "Outflow Smoothed Difference", "Outflow 2 Min Difference", "Outflow 5 min Difference"), col = c(colors[2], colors[3], colors[4], colors[2], colors[3], colors[4]), lty = c(1, 1, 1, 1, 3, 3, 3, 3), lwd = 2, cex = 0.8)
+
+```
+
+
+SWMM Results
+```{r}
+# get inflow for base case
+swmm_results_base <- get_inflow_outflow_swmm(swmm_outlet_stage, 0, 0, 184, 98, 0, 3.33, 3.3, 60)
+# adding typical noise and no bias
+swmm_results_typical_noise <- get_inflow_outflow_swmm(swmm_outlet_stage, 0, 0.01, 184, 98, 0, 3.33, 3.3, 60)
+# adding maximum noise and no bias
+swmm_results_max_noise <- get_inflow_outflow_swmm(swmm_outlet_stage, 0, 0.02, 184, 98, 0, 3.33, 3.3, 60)
+# adding no noise and +1cm bias
+swmm_results_plus1cm <- get_inflow_outflow_swmm(swmm_outlet_stage, 1/(2.54*12), 0, 184, 98, 0, 3.33, 3.3, 60)
+# adding no noise and -1cm bias
+swmm_results_minus1cm <- get_inflow_outflow_swmm(swmm_outlet_stage, -1/(2.54*12), 0, 184, 98, 0, 3.33, 3.3, 60)
+# adding no noise and +5cm bias
+swmm_results_plus5cm <- get_inflow_outflow_swmm(swmm_outlet_stage, 5/(2.54*12), 0, 184, 98, 0, 3.33, 3.3, 60)
+# adding no noise and -5cm bias
+swmm_results_minus5cm <- get_inflow_outflow_swmm(swmm_outlet_stage, -5/(2.54*12), 0, 184, 98, 0, 3.33, 3.3, 60)
+# typical noise and +1cm bias
+swmm_results_typical_noise_plus1cm <- get_inflow_outflow_swmm(swmm_outlet_stage, 1/(2.54*12), 0.01, 184, 98, 0, 3.33, 3.3, 60)
+# typical noise and -1cm bias
+swmm_results_typical_noise_minus1cm <- get_inflow_outflow_swmm(swmm_outlet_stage, -1/(2.54*12), 0.01, 184, 98, 0, 3.33, 3.3, 60)
+# typical noise and +5cm bias
+swmm_results_typical_noise_plus5cm <- get_inflow_outflow_swmm(swmm_outlet_stage, 5/(2.54*12), 0.01, 184, 98, 0, 3.33, 3.3, 60)
+# typical noise and -5cm bias
+swmm_results_typical_noise_minus5cm <- get_inflow_outflow_swmm(swmm_outlet_stage, -5/(2.54*12), 0.01, 184, 98, 0, 3.33, 3.3, 60)
+```
+
+SWMM Results Restrictive Pond
+```{r}
+# get inflow for base case
+swmm_res_results_base <- get_inflow_outflow_swmm(swmm_res_outlet_stage, 0, 0, 184, 98, 0, 3.33, 3.3, 60)
+# adding typical noise and no bias
+swmm_res_results_typical_noise <- get_inflow_outflow_swmm(swmm_res_outlet_stage, 0, 0.01, 184, 98, 0, 3.33, 3.3, 60)
+# adding maximum noise and no bias
+swmm_res_results_max_noise <- get_inflow_outflow_swmm(swmm_res_outlet_stage, 0, 0.02, 184, 98, 0, 3.33, 3.3, 60)
+# adding no noise and +1cm bias
+swmm_res_results_plus1cm <- get_inflow_outflow_swmm(swmm_res_outlet_stage, 1/(2.54*12), 0, 184, 98, 0, 3.33, 3.3, 60)
+# adding no noise and -1cm bias
+swmm_res_results_minus1cm <- get_inflow_outflow_swmm(swmm_res_outlet_stage, -1/(2.54*12), 0, 184, 98, 0, 3.33, 3.3, 60)
+# adding no noise and +5cm bias
+swmm_res_results_plus5cm <- get_inflow_outflow_swmm(swmm_res_outlet_stage, 5/(2.54*12), 0, 184, 98, 0, 3.33, 3.3, 60)
+# adding no noise and -5cm bias
+swmm_res_results_minus5cm <- get_inflow_outflow_swmm(swmm_res_outlet_stage, -5/(2.54*12), 0, 184, 98, 0, 3.33, 3.3, 60)
+# typical noise and +1cm bias
+swmm_res_results_typical_noise_plus1cm <- get_inflow_outflow_swmm(swmm_res_outlet_stage, 1/(2.54*12), 0.01, 184, 98, 0, 3.33, 3.3, 60)
+# typical noise and -1cm bias
+swmm_res_results_typical_noise_minus1cm <- get_inflow_outflow_swmm(swmm_res_outlet_stage, -1/(2.54*12), 0.01, 184, 98, 0, 3.33, 3.3, 60)
+# typical noise and +5cm bias
+swmm_res_results_typical_noise_plus5cm <- get_inflow_outflow_swmm(swmm_res_outlet_stage, 5/(2.54*12), 0.01, 184, 98, 0, 3.33, 3.3, 60)
+# typical noise and -5cm bias
+swmm_res_results_typical_noise_minus5cm <- get_inflow_outflow_swmm(swmm_res_outlet_stage, -5/(2.54*12), 0.01, 184, 98, 0, 3.33, 3.3, 60)
+```
+
+SWMM Results Differences
+```{r}
+# Calculate percent and magnitude difference from the base results
+
+# Typical noise
+swmm_inflow_typical_noise_diff <- calc_magnitude_difference(swmm_results_base$Inflow.cfs, swmm_results_typical_noise$Inflow.cfs)
+swmm_outflow_typical_noise_diff <- calc_magnitude_difference(swmm_results_base$Outflow.cfs, swmm_results_typical_noise$Outflow.cfs)
+swmm_inflow_typical_noise_percent_diff <- calc_percent_difference(swmm_results_base$Inflow.cfs, swmm_results_typical_noise$Inflow.cfs)
+swmm_outflow_typical_noise_percent_diff <- calc_percent_difference(swmm_results_base$Outflow.cfs, swmm_results_typical_noise$Outflow.cfs)
+
+# Maximum noise
+swmm_inflow_max_noise_diff <- calc_magnitude_difference(swmm_results_base$Inflow.cfs, swmm_results_max_noise$Inflow.cfs)
+swmm_outflow_max_noise_diff <- calc_magnitude_difference(swmm_results_base$Outflow.cfs, swmm_results_max_noise$Outflow.cfs)
+swmm_inflow_max_noise_percent_diff <- calc_percent_difference(swmm_results_base$Inflow.cfs, swmm_results_max_noise$Inflow.cfs)
+swmm_outflow_max_noise_percent_diff <- calc_percent_difference(swmm_results_base$Outflow.cfs, swmm_results_max_noise$Outflow.cfs)
+
+# +1cm bias
+swmm_inflow_plus1cm_diff <- calc_magnitude_difference(swmm_results_base$Inflow.cfs, swmm_results_plus1cm$Inflow.cfs)
+swmm_outflow_plus1cm_diff <- calc_magnitude_difference(swmm_results_base$Outflow.cfs, swmm_results_plus1cm$Outflow.cfs)
+swmm_inflow_plus1cm_percent_diff <- calc_percent_difference(swmm_results_base$Inflow.cfs, swmm_results_plus1cm$Inflow.cfs)
+swmm_outflow_plus1cm_percent_diff <- calc_percent_difference(swmm_results_base$Outflow.cfs, swmm_results_plus1cm$Outflow.cfs)
+
+# -1cm bias
+swmm_inflow_minus1cm_diff <- calc_magnitude_difference(swmm_results_base$Inflow.cfs, swmm_results_minus1cm$Inflow.cfs)
+swmm_outflow_minus1cm_diff <- calc_magnitude_difference(swmm_results_base$Outflow.cfs, swmm_results_minus1cm$Outflow.cfs)
+swmm_inflow_minus1cm_percent_diff <- calc_percent_difference(swmm_results_base$Inflow.cfs, swmm_results_minus1cm$Inflow.cfs)
+swmm_outflow_minus1cm_percent_diff <- calc_percent_difference(swmm_results_base$Outflow.cfs, swmm_results_minus1cm$Outflow.cfs)
+
+# +5cm bias
+swmm_inflow_plus5cm_diff <- calc_magnitude_difference(swmm_results_base$Inflow.cfs, swmm_results_plus5cm$Inflow.cfs)
+swmm_outflow_plus5cm_diff <- calc_magnitude_difference(swmm_results_base$Outflow.cfs, swmm_results_plus5cm$Outflow.cfs)
+swmm_inflow_plus5cm_percent_diff <- calc_percent_difference(swmm_results_base$Inflow.cfs, swmm_results_plus5cm$Inflow.cfs)
+swmm_outflow_plus5cm_percent_diff <- calc_percent_difference(swmm_results_base$Outflow.cfs, swmm_results_plus5cm$Outflow.cfs)
+
+# -5cm bias
+swmm_inflow_minus5cm_diff <- calc_magnitude_difference(swmm_results_base$Inflow.cfs, swmm_results_minus5cm$Inflow.cfs)
+swmm_outflow_minus5cm_diff <- calc_magnitude_difference(swmm_results_base$Outflow.cfs, swmm_results_minus5cm$Outflow.cfs)
+swmm_inflow_minus5cm_percent_diff <- calc_percent_difference(swmm_results_base$Inflow.cfs, swmm_results_minus5cm$Inflow.cfs)
+swmm_outflow_minus5cm_percent_diff <- calc_percent_difference(swmm_results_base$Outflow.cfs, swmm_results_minus5cm$Outflow.cfs)
+
+# +1cm bias and typical noise
+swmm_inflow_typical_noise_plus1cm_diff <- calc_magnitude_difference(swmm_results_base$Inflow.cfs, swmm_results_typical_noise_plus1cm$Inflow.cfs)
+swmm_outflow_typical_noise_plus1cm_diff <- calc_magnitude_difference(swmm_results_base$Outflow.cfs, swmm_results_typical_noise_plus1cm$Outflow.cfs)
+swmm_inflow_typical_noise_plus1cm_percent_diff <- calc_percent_difference(swmm_results_base$Inflow.cfs, swmm_results_typical_noise_plus1cm$Inflow.cfs)
+swmm_outflow_typical_noise_plus1cm_percent_diff <- calc_percent_difference(swmm_results_base$Outflow.cfs, swmm_results_typical_noise_plus1cm$Outflow.cfs)
+
+# -1cm bias and typical noise
+swmm_inflow_typical_noise_minus1cm_diff <- calc_magnitude_difference(swmm_results_base$Inflow.cfs, swmm_results_typical_noise_minus1cm$Inflow.cfs)
+swmm_outflow_typical_noise_minus1cm_diff <- calc_magnitude_difference(swmm_results_base$Outflow.cfs, swmm_results_typical_noise_minus1cm$Outflow.cfs)
+swmm_inflow_typical_noise_minus1cm_percent_diff <- calc_percent_difference(swmm_results_base$Inflow.cfs, swmm_results_typical_noise_minus1cm$Inflow.cfs)
+swmm_outflow_typical_noise_minus1cm_percent_diff <- calc_percent_difference(swmm_results_base$Outflow.cfs, swmm_results_typical_noise_minus1cm$Outflow.cfs)
+
+# +5cm bias and typical noise
+swmm_inflow_typical_noise_plus5cm_diff <- calc_magnitude_difference(swmm_results_base$Inflow.cfs, swmm_results_typical_noise_plus5cm$Inflow.cfs)
+swmm_outflow_typical_noise_plus5cm_diff <- calc_magnitude_difference(swmm_results_base$Outflow.cfs, swmm_results_typical_noise_plus5cm$Outflow.cfs)
+swmm_inflow_typical_noise_plus5cm_percent_diff <- calc_percent_difference(swmm_results_base$Inflow.cfs, swmm_results_typical_noise_plus5cm$Inflow.cfs)
+swmm_outflow_typical_noise_plus5cm_percent_diff <- calc_percent_difference(swmm_results_base$Outflow.cfs, swmm_results_typical_noise_plus5cm$Outflow.cfs)
+
+# -5cm bias and typical noise
+swmm_inflow_typical_noise_minus5cm_diff <- calc_magnitude_difference(swmm_results_base$Inflow.cfs, swmm_results_typical_noise_minus5cm$Inflow.cfs)
+swmm_outflow_typical_noise_minus5cm_diff <- calc_magnitude_difference(swmm_results_base$Outflow.cfs, swmm_results_typical_noise_minus5cm$Outflow.cfs)
+swmm_inflow_typical_noise_minus5cm_percent_diff <- calc_percent_difference(swmm_results_base$Inflow.cfs, swmm_results_typical_noise_minus5cm$Inflow.cfs)
+swmm_outflow_typical_noise_minus5cm_percent_diff <- calc_percent_difference(swmm_results_base$Outflow.cfs, swmm_results_typical_noise_minus5cm$Outflow.cfs)
+
+```
+
+Plot SWMM Results
+```{r}
+# Plot showing noise
+plot(swmm_time[1:300], swmm_outflow[1:300], type = "l", col = colors_red[1], xlab = "Time (hours)", ylab = "Flow (cfs)", main = "SWMM Inflow/Outflow with Noise", ylim = c(min(swmm_results_max_noise$Inflow.cfs), 60), lty = 3)
+lines(swmm_time[1:300], swmm_results_max_noise$Inflow.cfs[1:300], col = colors_blue[5])
+lines(swmm_time[1:300], swmm_results_max_noise$Outflow.cfs[1:300], col = colors_red[5], lty = 3)
+lines(swmm_time[1:300], swmm_results_typical_noise$Inflow.cfs[1:300], col = colors_blue[3])
+lines(swmm_time[1:300], swmm_results_typical_noise$Outflow.cfs[1:300], col = colors_red[3], lty = 3)
+lines(swmm_time[1:300], swmm_results_base$Inflow.cfs[1:300], col = colors_blue[1])
+grid()
+legend("topright", legend = c("Inflow Raw", "Inflow Typical Noise", "Inflow Max Noise", "Outflow Raw", "Outflow Typical Noise", "Outflow Max Noise"), col = c(colors_blue[1], colors_blue[3], colors_blue[5], colors_red[1], colors_red[3], colors_red[5]), lty = c(1, 1, 1, 3, 3, 3), lwd = 2, cex = 0.7)
+
+# Plot showing bias
+plot(swmm_time[5:300], swmm_outflow[5:300], type = "l", col = colors_red[1], xlab = "Time (hours)", ylab = "Flow (cfs)", main = "SWMM Inflow/Outflow with Bias", ylim = c(min(swmm_results_max_noise$Inflow.cfs), 60), lty = 3)
+lines(swmm_time[5:300], swmm_results_plus1cm$Inflow.cfs[5:300], col = colors_blue[2])
+lines(swmm_time[5:300], swmm_results_plus1cm$Outflow.cfs[5:300], col = colors_red[2], lty = 3)
+lines(swmm_time[5:300], swmm_results_minus1cm$Inflow.cfs[5:300], col = colors_blue[3])
+lines(swmm_time[5:300], swmm_results_minus1cm$Outflow.cfs[5:300], col = colors_red[3], lty = 3)
+lines(swmm_time[5:300], swmm_results_plus5cm$Inflow.cfs[5:300], col = colors_blue[4])
+lines(swmm_time[5:300], swmm_results_plus5cm$Outflow.cfs[5:300], col = colors_red[4], lty = 3)
+lines(swmm_time[5:300], swmm_results_minus5cm$Inflow.cfs[5:300], col = colors_blue[5])
+lines(swmm_time[5:300], swmm_results_minus5cm$Outflow.cfs[5:300], col = colors_red[5], lty = 3)
+lines(swmm_time[5:300], swmm_results_base$Inflow.cfs[5:300], col = colors_blue[1])
+grid()
+legend("topright", legend = c("Inflow Raw", "Inflow +1cm Bias", "Inflow -1cm Bias", "Inflow +5cm Bias", "Inflow -5cm Bias", "Outflow Raw", "Outflow +1cm Bias", "Outflow -1cm Bias", "Outflow +5cm Bias", "Outflow -5cm Bias"), col = c(colors_blue[1], colors_blue[2], colors_blue[3], colors_blue[4], colors_blue[5], colors_red[1], colors_red[2], colors_red[3], colors_red[4], colors_red[5]), lty = c(1, 1, 1, 1, 1, 3, 3, 3, 3, 3), lwd = 2, cex = 0.7)
+
+# Plot showing noise and bias
+plot(swmm_time[5:300], swmm_outflow[5:300], type = "l", col = colors_red[1], xlab = "Time (hours)", ylab = "Flow (cfs)", main = "SWMM Inflow/Outflow with Noise and Bias", ylim = c(min(swmm_results_max_noise$Inflow.cfs), 60), lty = 3)
+lines(swmm_time[5:300], swmm_results_typical_noise_plus1cm$Inflow.cfs[5:300], col = colors_blue[2])
+lines(swmm_time[5:300], swmm_results_typical_noise_plus1cm$Outflow.cfs[5:300], col = colors_red[2], lty = 3)
+lines(swmm_time[5:300], swmm_results_typical_noise_minus1cm$Inflow.cfs[5:300], col = colors_blue[3])
+lines(swmm_time[5:300], swmm_results_typical_noise_minus1cm$Outflow.cfs[5:300], col = colors_red[3], lty = 3)
+lines(swmm_time[5:300], swmm_results_typical_noise_plus5cm$Inflow.cfs[5:300], col = colors_blue[4])
+lines(swmm_time[5:300], swmm_results_typical_noise_plus5cm$Outflow.cfs[5:300], col = colors_red[4], lty = 3)
+lines(swmm_time[5:300], swmm_results_typical_noise_minus5cm$Inflow.cfs[5:300], col = colors_blue[5])
+lines(swmm_time[5:300], swmm_results_typical_noise_minus5cm$Outflow.cfs[5:300], col = colors_red[5], lty = 3)
+lines(swmm_time[5:300], swmm_results_base$Inflow.cfs[5:300], col = colors_blue[1])
+grid()
+legend("topright", legend = c("Inflow Raw", "Inflow Typical Noise +1cm Bias", "Inflow Typical Noise -1cm Bias", "Inflow Typical Noise +5cm Bias", "Inflow Typical Noise -5cm Bias", "Outflow Raw", "Outflow Typical Noise +1cm Bias", "Outflow Typical Noise -1cm Bias", "Outflow Typical Noise +5cm Bias", "Outflow Typical Noise -5cm Bias"), col = c(colors_blue[1], colors_blue[2], colors_blue[3], colors_blue[4], colors_blue[5], colors_red[1], colors_red[2], colors_red[3], colors_red[4], colors_red[5]), lty = c(1, 1, 1, 1, 1, 3, 3, 3, 3, 3), lwd = 2, cex = 0.7)
+
+```
+
+Plot SWMM Results Differences
+```{r}
+# Plot showing noise differences
+plot(swmm_time[1:300], swmm_inflow_typical_noise_diff[1:300], type = "l", col = colors_blue[3], xlab = "Time (hours)", ylab = "Flow Difference (cfs)", main = "SWMM Inflow/Outflow Noise Differences", ylim = c(-20,40))
+lines(swmm_time[1:300], swmm_outflow_typical_noise_diff[1:300], col = colors_red[3], lty = 3)
+lines(swmm_time[1:300], swmm_inflow_max_noise_diff[1:300], col = colors_blue[5])
+lines(swmm_time[1:300], swmm_outflow_max_noise_diff[1:300], col = colors_red[5], lty = 3)
+grid()
+legend("topright", legend = c("Inflow Typical Noise Difference", "Inflow Max Noise Difference", "Outflow Typical Noise Difference", "Outflow Max Noise Difference"), col = c(colors_blue[3], colors_blue[5], colors_red[3], colors_red[5]), lty = c(1, 1, 1, 3, 3, 3), lwd = 2, cex = 0.7)
+
+
+# Plot showing bias differences
+plot(swmm_time[5:300], swmm_inflow_plus1cm_diff[5:300], type = "l", col = colors_blue[2], xlab = "Time (hours)", ylab = "Flow Difference (cfs)", main = "SWMM Inflow/Outflow Bias Differences", ylim = c(-20,40))
+lines(swmm_time[5:300], swmm_outflow_plus1cm_diff[5:300], col = colors_red[2], lty = 3)
+lines(swmm_time[5:300], swmm_inflow_minus1cm_diff[5:300], col = colors_blue[3])
+lines(swmm_time[5:300], swmm_outflow_minus1cm_diff[5:300], col = colors_red[3], lty = 3)
+lines(swmm_time[5:300], swmm_inflow_plus5cm_diff[5:300], col = colors_blue[4])
+lines(swmm_time[5:300], swmm_outflow_plus5cm_diff[5:300], col = colors_red[4], lty = 3)
+lines(swmm_time[5:300], swmm_inflow_minus5cm_diff[5:300], col = colors_blue[5])
+lines(swmm_time[5:300], swmm_outflow_minus5cm_diff[5:300], col = colors_red[5], lty = 3)
+grid()
+legend("topright", legend = c("Inflow +1cm Bias Difference", "Inflow -1cm Bias Difference", "Inflow +5cm Bias Difference", "Inflow -5cm Bias Difference", "Outflow +1cm Bias Difference", "Outflow -1cm Bias Difference", "Outflow +5cm Bias Difference", "Outflow -5cm Bias Difference"), col = c(colors_blue[2], colors_blue[3], colors_blue[4], colors_blue[5], colors_red[2], colors_red[3], colors_red[4], colors_red[5]), lty = c(1, 1, 1, 1, 1, 3, 3, 3, 3, 3), lwd = 2, cex = 0.7)
+
+
+# Plots showing noise and bias differences
+plot(swmm_time[5:300], swmm_inflow_typical_noise_plus1cm_diff[5:300], type = "l", col = colors_blue[2], xlab = "Time (hours)", ylab = "Flow Difference (cfs)", main = "SWMM Inflow/Outflow Noise and Bias Differences", ylim = c(-20,40))
+lines(swmm_time[5:300], swmm_outflow_typical_noise_plus1cm_diff[5:300], col = colors_red[2], lty = 3)
+lines(swmm_time[5:300], swmm_inflow_typical_noise_minus1cm_diff[5:300], col = colors_blue[3])
+lines(swmm_time[5:300], swmm_outflow_typical_noise_minus1cm_diff[5:300], col = colors_red[3], lty = 3)
+lines(swmm_time[5:300], swmm_inflow_typical_noise_plus5cm_diff[5:300], col = colors_blue[4])
+lines(swmm_time[5:300], swmm_outflow_typical_noise_plus5cm_diff[5:300], col = colors_red[4], lty = 3)
+lines(swmm_time[5:300], swmm_inflow_typical_noise_minus5cm_diff[5:300], col = colors_blue[5])
+lines(swmm_time[5:300], swmm_outflow_typical_noise_minus5cm_diff[5:300], col = colors_red[5], lty = 3)
+grid()
+legend("topright", legend = c("Inflow Typical Noise +1cm Bias Difference", "Inflow Typical Noise -1cm Bias Difference", "Inflow Typical Noise +5cm Bias Difference", "Inflow Typical Noise -5cm Bias Difference", "Outflow Typical Noise +1cm Bias Difference", "Outflow Typical Noise -1cm Bias Difference", "Outflow Typical Noise +5cm Bias Difference", "Outflow Typical Noise -5cm Bias Difference"), col = c(colors_blue[2], colors_blue[3], colors_blue[4], colors_blue[5], colors_red[2], colors_red[3], colors_red[4], colors_red[5]), lty = c(1, 1, 1, 1, 1, 3, 3, 3, 3, 3), lwd = 2, cex = 0.6)
+
+```
+
+Plot SWMM Results Percent Differences
+```{r}
+# Plot showing noise percent differences
+plot(swmm_time[15:300], swmm_inflow_typical_noise_percent_diff[15:300], type = "l", col = "red4", xlab = "Time (hours)", ylab = "Flow Difference (%)", main = "SWMM Inflow/Outflow Noise Percent Differences", ylim = c(min(swmm_inflow_max_noise_percent_diff[15:300]), max(swmm_inflow_max_noise_percent_diff[15:300])))
+lines(swmm_time[15:300], swmm_outflow_typical_noise_percent_diff[15:300], col = "red4", lty = 3)
+lines(swmm_time[15:300], swmm_inflow_max_noise_percent_diff[15:300], col = "lightpink")
+lines(swmm_time[15:300], swmm_outflow_max_noise_percent_diff[15:300], col = "lightpink", lty = 3)
+grid()
+
+# Plot showing bias percent differences
+plot(swmm_time[15:300], swmm_inflow_plus1cm_percent_diff[15:300], type = "l", col = "plum1", xlab = "Time (hours)", ylab = "Flow Difference (%)", main = "SWMM Inflow/Outflow Bias Percent Differences", ylim = c(-100,100))
+lines(swmm_time[15:300], swmm_outflow_plus1cm_percent_diff[15:300], col = "plum1", lty = 3)
+lines(swmm_time[15:300], swmm_inflow_minus1cm_percent_diff[15:300], col = "plum4")
+lines(swmm_time[15:300], swmm_outflow_minus1cm_percent_diff[15:300], col = "plum4", lty = 3)
+lines(swmm_time[15:300], swmm_inflow_plus5cm_percent_diff[15:300], col = "slateblue2")
+lines(swmm_time[15:300], swmm_outflow_plus5cm_percent_diff[15:300], col = "slateblue2", lty = 3)
+lines(swmm_time[15:300], swmm_inflow_minus5cm_percent_diff[15:300], col = "slateblue4")
+lines(swmm_time[15:300], swmm_outflow_minus5cm_percent_diff[15:300], col = "slateblue4", lty = 3)
+grid()
+
+# Plots showing noise and bias percent differences
+plot(swmm_time[15:300], swmm_inflow_typical_noise_plus1cm_percent_diff[15:300], type = "l", col = "yellow1", xlab = "Time (hours)", ylab = "Flow Difference (%)", main = "SWMM Inflow/Outflow Noise and Bias Percent Differences", ylim = c(-100,100))
+lines(swmm_time[15:300], swmm_outflow_typical_noise_plus1cm_percent_diff[15:300], col = "yellow1", lty = 3)
+lines(swmm_time[15:300], swmm_inflow_typical_noise_minus1cm_percent_diff[15:300], col = "gold1")
+lines(swmm_time[15:300], swmm_outflow_typical_noise_minus1cm_percent_diff[15:300], col = "gold1", lty = 3)
+lines(swmm_time[15:300], swmm_inflow_typical_noise_plus5cm_percent_diff[15:300], col = "tomato1")
+lines(swmm_time[15:300], swmm_outflow_typical_noise_plus5cm_percent_diff[15:300], col = "tomato1", lty = 3)
+lines(swmm_time[15:300], swmm_inflow_typical_noise_minus5cm_percent_diff[15:300], col = "brown")
+lines(swmm_time[15:300], swmm_outflow_typical_noise_minus5cm_percent_diff[15:300], col = "brown", lty = 3)
+grid()
+
 ```
 
 Garner
@@ -274,9 +687,9 @@ plot_df <- data.frame(x = datetime_gar[27258:27656], mean_value_inflow = smoothe
 ggplot(plot_df, aes(x = x)) +
   geom_line(aes(y = mean_value_inflow), color = "blue", size = 0.5) +  # Line for the mean inflow
   geom_line(aes(y = mean_value_outflow), color = "red", size = 0.5) +  # Line for the mean outflow
-  geom_ribbon(aes(ymin = lower_ci_inflow, ymax = upper_ci_inflow), fill = "blue", alpha = 0.2) +  # Shaded area inflow
-  geom_ribbon(aes(ymin = lower_ci_outflow, ymax = upper_ci_outflow), fill = "red", alpha = 0.2) +  # Shaded area outflow
-  labs(title = "Mean with 95% Confidence Interval",
+  geom_ribbon(aes(ymin = lower_bound_inflow, ymax = upper_bound_inflow), fill = "blue", alpha = 0.2) +  # Shaded area inflow
+  geom_ribbon(aes(ymin = lower_bound_outflow, ymax = upper_bound_outflow), fill = "red", alpha = 0.2) +  # Shaded area outflow
+  labs(title = "Restrictive Pond Range of Inflow and Outflow",
        x = "DateTime",
        y = "Flow (cfs)") +
   theme_minimal()
@@ -322,9 +735,9 @@ plot_df <- data.frame(x = datetime_mid[1291:1689], mean_value_inflow = smoothed_
 ggplot(plot_df, aes(x = x)) +
   geom_line(aes(y = mean_value_inflow), color = "blue", size = 0.5) +  # Line for the mean inflow
   geom_line(aes(y = mean_value_outflow), color = "red", size = 0.5) +  # Line for the mean outflow
-  geom_ribbon(aes(ymin = lower_ci_inflow, ymax = upper_ci_inflow), fill = "blue", alpha = 0.2) +  # Shaded area inflow
-  geom_ribbon(aes(ymin = lower_ci_outflow, ymax = upper_ci_outflow), fill = "red", alpha = 0.2) +  # Shaded area outflow
-  labs(title = "Mean with 95% Confidence Interval",
+  geom_ribbon(aes(ymin = lower_bound_inflow, ymax = upper_bound_inflow), fill = "blue", alpha = 0.2) +  # Shaded area inflow
+  geom_ribbon(aes(ymin = lower_bound_outflow, ymax = upper_bound_outflow), fill = "red", alpha = 0.2) +  # Shaded area outflow
+  labs(title = "Restrictive Pond Range of Inflow and Outflow",
        x = "DateTime",
        y = "Flow (cfs)") +
   theme_minimal()
