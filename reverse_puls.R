@@ -19,6 +19,46 @@ smooth_elevation <- function(elevation, weights=c(1/3,1/3,1/3)) {
   return(moving_avg_elevation)
 }
 
+# Transform the 1-minute data into 5-minute data
+aggregate_data <- function(df, time_col, level_col, divisor) {
+  # Calculate the number of complete groups of 3
+  complete_rows <- (nrow(df) %/% divisor) * divisor
+  
+  # Filter out any incomplete group
+  df <- df[1:complete_rows, ]
+  
+  df_xmin <- df %>%
+    dplyr::mutate(group = rep(1:(n()/divisor), each = divisor)) %>%
+    dplyr::group_by(group) %>%
+    dplyr::summarize(
+      !!time_col := first(!!sym(time_col)),                # Use the first timestamp in each group
+      !!level_col := mean(!!sym(level_col))               # Take the average of the three values
+    ) %>%
+    dplyr::select(-group)                                  # Drop the 'group' column
+  
+  return(df_xmin)
+}
+
+# Transform the 5-minute data into 15-minute data
+aggregate_to_15min <- function(df, time_col, level_col) {
+  # Calculate the number of complete groups of 3
+  complete_rows <- (nrow(df) %/% 3) * 3
+  
+  # Filter out any incomplete group
+  df <- df[1:complete_rows, ]
+  
+  df_15min <- df %>%
+    dplyr::mutate(group = rep(1:(n()/3), each = 3)) %>%
+    dplyr::group_by(group) %>%
+    dplyr::summarize(
+      !!time_col := first(!!sym(time_col)),                # Use the first timestamp in each group
+      !!level_col := mean(!!sym(level_col))               # Take the average of the three values
+    ) %>%
+    dplyr::select(-group)                                  # Drop the 'group' column
+  
+  return(df_15min)
+}
+
 # get storage difference
 get_storage_diff <- function(elevation, L_basin, W_basin) {
   # initialize storage_1 and storage_2
@@ -77,6 +117,28 @@ get_avg_outflow_nonres <- function(elevation, H_0, L_w) {
   return(avg_outflow)
 }
 
+# get average outflow for EPA-SWMM runs
+get_avg_outflow_swmm <- function(elevation, H_0, C_w, SS) {
+  # initialize outflow_1 and outflow_2 with proper lengths
+  outflow_1 <- numeric(length(elevation))
+  outflow_2 <- numeric(length(elevation))
+  # create a vector to store the average outflow
+  avg_outflow <- numeric(length(elevation))
+  # loop over the elevation vector
+  for (i in 1:(length(elevation)-1)) {
+    outflow_1[i+1] <- outflow_2[i]
+    
+    if (elevation[i] < H_0) {
+      outflow_2[i+1] <- 0
+    }
+    else {
+      outflow_2[i+1] <- (C_w*SS)*((elevation[i])^(4.1/2))  
+    }
+    avg_outflow[i+1] <- (outflow_1[i+1] + outflow_2[i+1])/2
+  }
+  return(avg_outflow)
+}
+
 # get average inflow 
 get_avg_inflow <- function(storage_diff, avg_outflow, time_delta) {
   return((storage_diff/time_delta)+avg_outflow)
@@ -116,4 +178,29 @@ get_inflow_outflow_nonres <- function(elevation, ft_bias, ft_noise, L_basin, W_b
   result_df <- data.frame(Inflow.cfs = avg_inflow, Outflow.cfs = avg_outflow)
   # return the dataframe
   return(result_df)
+}
+
+get_inflow_outflow_swmm <- function(elevation, ft_bias, ft_noise, L_basin, W_basin, H_0, C_w, SS, time_delta) {
+  # add noise to each elevation measurement
+  noise_elevation <- add_noise(elevation, ft_noise)
+  # add bias to each elevation measurement
+  bias_elevation <- noise_elevation + ft_bias
+  # calculate storage diff
+  storage_diff <- get_storage_diff(bias_elevation, L_basin, W_basin)
+  # calculate average outflow
+  avg_outflow <- get_avg_outflow_swmm(bias_elevation, H_0, C_w, SS)
+  # calculate average inflow
+  avg_inflow <- get_avg_inflow(storage_diff, avg_outflow, time_delta)
+  # create dataframe with inflow and outflow
+  result_df <- data.frame(Inflow.cfs = avg_inflow, Outflow.cfs = avg_outflow)
+  # return the dataframe
+  return(result_df) 
+}
+
+calc_magnitude_difference <- function(original, new) {
+  return(original - new)
+}
+
+calc_percent_difference <- function(original, new) {
+  return(((original - new)/original)*100)
 }
