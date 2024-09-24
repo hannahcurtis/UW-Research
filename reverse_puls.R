@@ -59,7 +59,7 @@ aggregate_to_15min <- function(df, time_col, level_col) {
   return(df_15min)
 }
 
-# get storage difference
+# get storage difference by approximating pond as elliptical cylinder
 get_storage_diff <- function(elevation, L_basin, W_basin) {
   # initialize storage_1 and storage_2
   storage_1 <- elevation
@@ -69,6 +69,21 @@ get_storage_diff <- function(elevation, L_basin, W_basin) {
   for (i in 1:length(elevation)) {
     storage_1[i+1] <- storage_2[i] 
     storage_2[i+1] <- pi * elevation[i+1] * L_basin/2 * W_basin/2
+    storage_diff[i] <- storage_2[i] - storage_1[i]
+  }
+  return(storage_diff)
+}
+
+# get storage difference by approximating pond as a truncated rectangular pyramid
+get_storage_diff_pyr <- function(elevation, L_basin_long, W_basin_long, L_basin_short, W_basin_short) {
+  # initialize storage_1 and storage_2
+  storage_1 <- elevation
+  storage_2 <- elevation
+  # create a vector to store the differences in storage
+  storage_diff <- numeric(length(elevation))
+  for (i in 1:length(elevation)) {
+    storage_1[i+1] <- storage_2[i] 
+    storage_2[i+1] <- (((L_basin_long*W_basin_short) + (L_basin_short*W_basin_long) + (2*((L_basin_short*W_basin_short) + (L_basin_long*W_basin_long))))/6)*elevation[i+1]
     storage_diff[i] <- storage_2[i] - storage_1[i]
   }
   return(storage_diff)
@@ -204,3 +219,5 @@ calc_magnitude_difference <- function(original, new) {
 calc_percent_difference <- function(original, new) {
   return(((original - new)/original)*100)
 }
+
+

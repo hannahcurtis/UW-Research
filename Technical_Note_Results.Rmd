@@ -14,41 +14,52 @@ library(RColorBrewer)
 
 # read water level files
 # garner
-garner <- read.csv("Garner/Garner_Water_Level_all.csv")
+garner <- read.csv("Inflow_Outflow/Garner_Water_Level_all.csv")
 depth_gar <- garner$Depth.ft
 smooth_depth_gar <- smooth_elevation(depth_gar)
 datetime_gar <- as.POSIXct(garner$DateTime, format = "%m/%d/%y %H:%M")
 
 # doba5
-doba5 <- read.csv("DobA5/DobA5_Water_Level_all.csv")
+doba5 <- read.csv("Inflow_Outflow/DobA5_Water_Level_all.csv")
 depth_da5 <- doba5$Depth.ft
 smooth_depth_da5 <- smooth_elevation(depth_da5)
 datetime_da5 <- as.POSIXct(doba5$DateTime, format = "%m/%d/%y %H:%M")
 
 # midtown
-midtown <- read.csv("Midtown/Midtown_Water_Level_all.csv")
+midtown <- read.csv("Inflow_Outflow/Midtown_Water_Level_all.csv")
 depth_mid <- midtown$Depth.ft
 smooth_depth_mid <- smooth_elevation(depth_mid)
 datetime_mid <- as.POSIXct(midtown$DateTime, format = "%m/%d/%y %H:%M")
 
 # baxter
-baxter <- read.csv("Baxter/Baxter_Water_Level_all.csv")
+baxter <- read.csv("Inflow_Outflow/Baxter_Water_Level_all.csv")
 depth_bax <- baxter$Depth.ft
 smooth_depth_bax <- smooth_elevation(depth_bax)
 datetime_bax <- as.POSIXct(baxter$DateTime, format = "%m/%d/%y %H:%M")
 
-# read EPA-SWMM stage and outflow file
-swmm_data <- read.csv("EPASWMM_Outflow.csv")
-swmm_outlet_stage <- swmm_data$Depth.Outlet.ft
-swmm_pond_stage <- swmm_data$Depth.Pond.ft
-swmm_outflow <- swmm_data$Outflow.cfs
-swmm_time <- as.POSIXct(swmm_data$Hours, format = "%H:%M")
+# SWMM Inflow df
+swmm_inflow_df <- read.csv("SWMM__Inflow.csv")
+swmm_inflow <- swmm_inflow_df$Inflow.cfs
 
-# read EPA-SWMM stage and outflow for restrictive pond
-swmm_res_data <- read.csv("EPASWMM_Outflow_Res.csv")
-swmm_res_outlet_stage <- swmm_res_data$Depth.Outlet.ft
-swmm_res_outflow <- swmm_res_data$Outflow.cfs
-swmm_res_time <- as.POSIXct(swmm_res_data$Hours, format = "%H:%M")
+# SWMM Weir H=5, L=10
+swmm_h5l10_df <- read.csv("SWMM_H5_L10.csv")
+swmm_h5l10_stage <- swmm_h5l10_df$Depth.ft
+swmm_h5l10_outflow <- swmm_h5l10_df$Outflow.cfs
+
+# SWMM Weir H=5, L=5
+swmm_h5l5_df <- read.csv("SWMM_H5_L5.csv")
+swmm_h5l5_stage <- swmm_h5l5_df$Depth.ft
+swmm_h5l5_outflow <- swmm_h5l5_df$Outflow.cfs
+
+# SWMM Weir H=5, L=1
+swmm_h5l1_df <- read.csv("SWMM_H5__L1.csv")
+swmm_h5l1_stage <- swmm_h5l1_df$Depth.ft
+swmm_h5l1_outflow <- swmm_h5l1_df$Outflow.cfs
+
+# SWMM Weir H=2, L=1
+swmm_h2l1_df <- read.csv("SWMM_H2_L1.csv")
+swmm_h2l1_stage <- swmm_h2l1_df$Depth.cfs
+swmm_h2l1_outflow <- swmm_h2l1_df$Outflow.cfs
 
 ```
 Colors
@@ -238,6 +249,115 @@ legend("topright", legend = c("Inflow Smoothed Difference", "Inflow 2 Min Differ
 
 ```
 
+SWMM Results H=5, L=10
+```{r}
+# get inflow for base case
+swmm_results_h5l10_base <- get_inflow_outflow_swmm(swmm_h5l10_stage, 0, 0, 184, 80,  0, 3.33, 3.3, 60)
+# adding typical noise and no bias
+swmm_results_h5l10_typical_noise <- get_inflow_outflow_swmm(swmm_h5l10_stage, 0, 0.01, 184, 80,  0, 3.33, 3.3, 60)
+# adding maximum noise and no bias
+swmm_results_h5l10_max_noise <- get_inflow_outflow_swmm(swmm_h5l10_stage, 0, 0.02, 184, 80,  0, 3.33, 3.3, 60)
+# adding no noise and +1cm bias
+swmm_results_h5l10_plus1cm <- get_inflow_outflow_swmm(swmm_h5l10_stage, 1/(2.54*12), 0, 184, 80,  0, 3.33, 3.3, 60)
+# adding no noise and -1cm bias
+swmm_results_h5l10_minus1cm <- get_inflow_outflow_swmm(swmm_h5l10_stage, -1/(2.54*12), 0, 184, 80,  0, 3.33, 3.3, 60)
+# adding no noise and +5cm bias
+swmm_results_h5l10_plus5cm <- get_inflow_outflow_swmm(swmm_h5l10_stage, 5/(2.54*12), 0, 184, 80,  0, 3.33, 3.3, 60)
+# adding no noise and -5cm bias
+swmm_results_h5l10_minus5cm <- get_inflow_outflow_swmm(swmm_h5l10_stage, -5/(2.54*12), 0, 184, 80,  0, 3.33, 3.3, 60)
+# typical noise and +1cm bias
+swmm_results_h5l10_typical_noise_plus1cm <- get_inflow_outflow_swmm(swmm_h5l10_stage, 1/(2.54*12), 0.01, 184, 80,  0, 3.33, 3.3, 60)
+# typical noise and -1cm bias
+swmm_results_h5l10_typical_noise_minus1cm <- get_inflow_outflow_swmm(swmm_h5l10_stage, -1/(2.54*12), 0.01, 184, 80,  0, 3.33, 3.3, 60)
+# typical noise and +5cm bias
+swmm_results_h5l10_typical_noise_plus5cm <- get_inflow_outflow_swmm(swmm_h5l10_stage, 5/(2.54*12), 0.01, 184, 80,  0, 3.33, 3.3, 60)
+# typical noise and -5cm bias
+swmm_results_h5l10_typical_noise_minus5cm <- get_inflow_outflow_swmm(swmm_h5l10_stage, -5/(2.54*12), 0.01, 184, 80,  0, 3.33, 3.3, 60)
+```
+
+SWMM Results H=5, L=5
+```{r}
+# get inflow for base case
+swmm_results_h5l5_base <- get_inflow_outflow_swmm(swmm_h5l5_stage, 0, 0, 184, 98,  0, 3.33, 3.3, 60)
+# adding typical noise and no bias
+swmm_results_h5l5_typical_noise <- get_inflow_outflow_swmm(swmm_h5l5_stage, 0, 0.01, 184, 98,  0, 3.33, 3.3, 60)
+# adding maximum noise and no bias
+swmm_results_h5l5_max_noise <- get_inflow_outflow_swmm(swmm_h5l5_stage, 0, 0.02, 184, 98,  0, 3.33, 3.3, 60)
+# adding no noise and +1cm bias
+swmm_results_h5l5_plus1cm <- get_inflow_outflow_swmm(swmm_h5l5_stage, 1/(2.54*12), 0, 184, 98,  0, 3.33, 3.3, 60)
+# adding no noise and -1cm bias
+swmm_results_h5l5_minus1cm <- get_inflow_outflow_swmm(swmm_h5l5_stage, -1/(2.54*12), 0, 184, 98,  0, 3.33, 3.3, 60)
+# adding no noise and +5cm bias
+swmm_results_h5l5_plus5cm <- get_inflow_outflow_swmm(swmm_h5l5_stage, 5/(2.54*12), 0, 184, 98,  0, 3.33, 3.3, 60)
+# adding no noise and -5cm bias
+swmm_results_h5l5_minus5cm <- get_inflow_outflow_swmm(swmm_h5l5_stage, -5/(2.54*12), 0, 184, 98,  0, 3.33, 3.3, 60)
+# typical noise and +1cm bias
+swmm_results_h5l5_typical_noise_plus1cm <- get_inflow_outflow_swmm(swmm_h5l5_stage, 1/(2.54*12), 0.01, 184, 98,  0, 3.33, 3.3, 60)
+# typical noise and -1cm bias
+swmm_results_h5l5_typical_noise_minus1cm <- get_inflow_outflow_swmm(swmm_h5l5_stage, -1/(2.54*12), 0.01, 184, 98,  0, 3.33, 3.3, 60)
+# typical noise and +5cm bias
+swmm_results_h5l5_typical_noise_plus5cm <- get_inflow_outflow_swmm(swmm_h5l5_stage, 5/(2.54*12), 0.01, 184, 98,  0, 3.33, 3.3, 60)
+# typical noise and -5cm bias
+swmm_results_h5l5_typical_noise_minus5cm <- get_inflow_outflow_swmm(swmm_h5l5_stage, -5/(2.54*12), 0.01, 184, 98,  0, 3.33, 3.3, 60)
+```
+
+SWMM Results H=5, L=1
+```{r}
+# get inflow for base case
+swmm_results_h5l1_base <- get_inflow_outflow_swmm(swmm_h5l1_stage, 0, 0, 184, 200,  0, 3.33, 3.3, 60)
+# adding typical noise and no bias
+swmm_results_h5l1_typical_noise <- get_inflow_outflow_swmm(swmm_h5l1_stage, 0, 0.01, 184, 200,  0, 3.33, 3.3, 60)
+# adding maximum noise and no bias
+swmm_results_h5l1_max_noise <- get_inflow_outflow_swmm(swmm_h5l1_stage, 0, 0.02, 184, 200,  0, 3.33, 3.3, 60)
+# adding no noise and +1cm bias
+swmm_results_h5l1_plus1cm <- get_inflow_outflow_swmm(swmm_h5l1_stage, 1/(2.54*12), 0, 184, 200,  0, 3.33, 3.3, 60)
+# adding no noise and -1cm bias
+swmm_results_h5l1_minus1cm <- get_inflow_outflow_swmm(swmm_h5l1_stage, -1/(2.54*12), 0, 184, 200,  0, 3.33, 3.3, 60)
+# adding no noise and +5cm bias
+swmm_results_h5l1_plus5cm <- get_inflow_outflow_swmm(swmm_h5l1_stage, 5/(2.54*12), 0, 184, 200,  0, 3.33, 3.3, 60)
+# adding no noise and -5cm bias
+swmm_results_h5l1_minus5cm <- get_inflow_outflow_swmm(swmm_h5l1_stage, -5/(2.54*12), 0, 184, 200,  0, 3.33, 3.3, 60)
+# typical noise and +1cm bias
+swmm_results_h5l1_typical_noise_plus1cm <- get_inflow_outflow_swmm(swmm_h5l1_stage, 1/(2.54*12), 0.01, 184, 200,  0, 3.33, 3.3, 60)
+# typical noise and -1cm bias
+swmm_results_h5l1_typical_noise_minus1cm <- get_inflow_outflow_swmm(swmm_h5l1_stage, -1/(2.54*12), 0.01, 184, 200,  0, 3.33, 3.3, 60)
+# typical noise and +5cm bias
+swmm_results_h5l1_typical_noise_plus5cm <- get_inflow_outflow_swmm(swmm_h5l1_stage, 5/(2.54*12), 0.01, 184, 200,  0, 3.33, 3.3, 60)
+# typical noise and -5cm bias
+swmm_results_h5l1_typical_noise_minus5cm <- get_inflow_outflow_swmm(swmm_h5l1_stage, -5/(2.54*12), 0.01, 184, 200,  0, 3.33, 3.3, 60)
+```
+
+SWMM Results H=2, L=1
+```{r}
+# get inflow for base case
+swmm_results_h2l1_base <- get_inflow_outflow_swmm(swmm_h2l1_stage, 0, 0, 184, 300,  0, 3.33, 3.3, 60)
+# adding typical noise and no bias
+swmm_results_h2l1_typical_noise <- get_inflow_outflow_swmm(swmm_h2l1_stage, 0, 0.01, 184, 300,  0, 3.33, 3.3, 60)
+# adding maximum noise and no bias
+swmm_results_h2l1_max_noise <- get_inflow_outflow_swmm(swmm_h2l1_stage, 0, 0.02, 184, 300,  0, 3.33, 3.3, 60)
+# adding no noise and +1cm bias
+swmm_results_h2l1_plus1cm <- get_inflow_outflow_swmm(swmm_h2l1_stage, 1/(2.54*12), 0, 184, 300,  0, 3.33, 3.3, 60)
+# adding no noise and -1cm bias
+swmm_results_h2l1_minus1cm <- get_inflow_outflow_swmm(swmm_h2l1_stage, -1/(2.54*12), 0, 184, 300,  0, 3.33, 3.3, 60)
+# adding no noise and +5cm bias
+swmm_results_h2l1_plus5cm <- get_inflow_outflow_swmm(swmm_h2l1_stage, 5/(2.54*12), 0, 184, 300,  0, 3.33, 3.3, 60)
+# adding no noise and -5cm bias
+swmm_results_h2l1_minus5cm <- get_inflow_outflow_swmm(swmm_h2l1_stage, -5/(2.54*12), 0, 184, 300,  0, 3.33, 3.3, 60)
+# typical noise and +1cm bias
+swmm_results_h2l1_typical_noise_plus1cm <- get_inflow_outflow_swmm(swmm_h2l1_stage, 1/(2.54*12), 0.01, 184, 300,  0, 3.33, 3.3, 60)
+# typical noise and -1cm bias
+swmm_results_h2l1_typical_noise_minus1cm <- get_inflow_outflow_swmm(swmm_h2l1_stage, -1/(2.54*12), 0.01, 184, 300,  0, 3.33, 3.3, 60)
+# typical noise and +5cm bias
+swmm_results_h2l1_typical_noise_plus5cm <- get_inflow_outflow_swmm(swmm_h2l1_stage, 5/(2.54*12), 0.01, 184, 300,  0, 3.33, 3.3, 60)
+# typical noise and -5cm bias
+swmm_results_h2l1_typical_noise_minus5cm <- get_inflow_outflow_swmm(swmm_h2l1_stage, -5/(2.54*12), 0.01, 184, 300,  0, 3.33, 3.3, 60)
+```
+
+Compare EPA SWMM to calculated inflows
+```{r}
+plot(swmm_inflow[1:300], type = "l", col = "black")
+lines(swmm_results_h5l1_base$Inflow.cfs[1:300], col = "red")
+```
 
 SWMM Results
 ```{r}
@@ -354,6 +474,204 @@ swmm_inflow_typical_noise_minus5cm_diff <- calc_magnitude_difference(swmm_result
 swmm_outflow_typical_noise_minus5cm_diff <- calc_magnitude_difference(swmm_results_base$Outflow.cfs, swmm_results_typical_noise_minus5cm$Outflow.cfs)
 swmm_inflow_typical_noise_minus5cm_percent_diff <- calc_percent_difference(swmm_results_base$Inflow.cfs, swmm_results_typical_noise_minus5cm$Inflow.cfs)
 swmm_outflow_typical_noise_minus5cm_percent_diff <- calc_percent_difference(swmm_results_base$Outflow.cfs, swmm_results_typical_noise_minus5cm$Outflow.cfs)
+
+```
+
+SWMM Results Differences H=5, L=10
+```{r}
+# Calculate percent and magnitude difference from the base results
+
+# Typical noise
+swmm_h5l10_inflow_typical_noise_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_typical_noise$Inflow.cfs)
+swmm_h5l10_outflow_typical_noise_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_typical_noise$Outflow.cfs)
+swmm_h5l10_inflow_typical_noise_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_typical_noise$Inflow.cfs)
+swmm_h5l10_outflow_typical_noise_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_typical_noise$Outflow.cfs)
+
+# Maximum noise
+swmm_h5l10_inflow_max_noise_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_max_noise$Inflow.cfs)
+swmm_h5l10_outflow_max_noise_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_max_noise$Outflow.cfs)
+swmm_h5l10_inflow_max_noise_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_max_noise$Inflow.cfs)
+swmm_h5l10_outflow_max_noise_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_max_noise$Outflow.cfs)
+
+# +1cm bias
+swmm_h5l10_inflow_plus1cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_plus1cm$Inflow.cfs)
+swmm_h5l10_outflow_plus1cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_plus1cm$Outflow.cfs)
+swmm_h5l10_inflow_plus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_plus1cm$Inflow.cfs)
+swmm_h5l10_outflow_plus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_plus1cm$Outflow.cfs)
+
+# -1cm bias
+swmm_h5l10_inflow_minus1cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_minus1cm$Inflow.cfs)
+swmm_h5l10_outflow_minus1cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_minus1cm$Outflow.cfs)
+swmm_h5l10_inflow_minus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_minus1cm$Inflow.cfs)
+swmm_h5l10_outflow_minus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_minus1cm$Outflow.cfs)
+
+# +5cm bias
+swmm_h5l10_inflow_plus5cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_plus5cm$Inflow.cfs)
+swmm_h5l10_outflow_plus5cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_plus5cm$Outflow.cfs)
+swmm_h5l10_inflow_plus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_plus5cm$Inflow.cfs)
+swmm_h5l10_outflow_plus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_plus5cm$Outflow.cfs)
+
+# -5cm bias
+swmm_h5l10_inflow_minus5cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_minus5cm$Inflow.cfs)
+swmm_h5l10_outflow_minus5cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_minus5cm$Outflow.cfs)
+swmm_h5l10_inflow_minus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_minus5cm$Inflow.cfs)
+swmm_h5l10_outflow_minus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_minus5cm$Outflow.cfs)
+
+# +1cm bias and typical noise
+swmm_h5l10_inflow_typical_noise_plus1cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_typical_noise_plus1cm$Inflow.cfs)
+swmm_h5l10_outflow_typical_noise_plus1cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_typical_noise_plus1cm$Outflow.cfs)
+swmm_h5l10_inflow_typical_noise_plus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_typical_noise_plus1cm$Inflow.cfs)
+swmm_h5l10_outflow_typical_noise_plus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_typical_noise_plus1cm$Outflow.cfs)
+
+# -1cm bias and typical noise
+swmm_h5l10_inflow_typical_noise_minus1cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_typical_noise_minus1cm$Inflow.cfs)
+swmm_h5l10_outflow_typical_noise_minus1cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_typical_noise_minus1cm$Outflow.cfs)
+swmm_h5l10_inflow_typical_noise_minus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_typical_noise_minus1cm$Inflow.cfs)
+swmm_h5l10_outflow_typical_noise_minus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_typical_noise_minus1cm$Outflow.cfs)
+
+# +5cm bias and typical noise
+swmm_h5l10_inflow_typical_noise_plus5cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_typical_noise_plus5cm$Inflow.cfs)
+swmm_h5l10_outflow_typical_noise_plus5cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_typical_noise_plus5cm$Outflow.cfs)
+swmm_h5l10_inflow_typical_noise_plus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_typical_noise_plus5cm$Inflow.cfs)
+swmm_h5l10_outflow_typical_noise_plus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_typical_noise_plus5cm$Outflow.cfs)
+
+# -5cm bias and typical noise
+swmm_h5l10_inflow_typical_noise_minus5cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_typical_noise_minus5cm$Inflow.cfs)
+swmm_h5l10_outflow_typical_noise_minus5cm_diff <- calc_magnitude_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_typical_noise_minus5cm$Outflow.cfs)
+swmm_h5l10_inflow_typical_noise_minus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Inflow.cfs, swmm_results_h5l10_typical_noise_minus5cm$Inflow.cfs)
+swmm_h5l10_outflow_typical_noise_minus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l10_base$Outflow.cfs, swmm_results_h5l10_typical_noise_minus5cm$Outflow.cfs)
+
+```
+
+SWMM Results Differences H=5, L=5
+```{r}
+# Calculate percent and magnitude difference from the base results
+
+# Typical noise
+swmm_h5l5_inflow_typical_noise_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_typical_noise$Inflow.cfs)
+swmm_h5l5_outflow_typical_noise_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_typical_noise$Outflow.cfs)
+swmm_h5l5_inflow_typical_noise_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_typical_noise$Inflow.cfs)
+swmm_h5l5_outflow_typical_noise_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_typical_noise$Outflow.cfs)
+
+# Maximum noise
+swmm_h5l5_inflow_max_noise_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_max_noise$Inflow.cfs)
+swmm_h5l5_outflow_max_noise_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_max_noise$Outflow.cfs)
+swmm_h5l5_inflow_max_noise_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_max_noise$Inflow.cfs)
+swmm_h5l5_outflow_max_noise_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_max_noise$Outflow.cfs)
+
+# +1cm bias
+swmm_h5l5_inflow_plus1cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_plus1cm$Inflow.cfs)
+swmm_h5l5_outflow_plus1cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_plus1cm$Outflow.cfs)
+swmm_h5l5_inflow_plus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_plus1cm$Inflow.cfs)
+swmm_h5l5_outflow_plus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_plus1cm$Outflow.cfs)
+
+# -1cm bias
+swmm_h5l5_inflow_minus1cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_minus1cm$Inflow.cfs)
+swmm_h5l5_outflow_minus1cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_minus1cm$Outflow.cfs)
+swmm_h5l5_inflow_minus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_minus1cm$Inflow.cfs)
+swmm_h5l5_outflow_minus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_minus1cm$Outflow.cfs)
+
+# +5cm bias
+swmm_h5l5_inflow_plus5cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_plus5cm$Inflow.cfs)
+swmm_h5l5_outflow_plus5cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_plus5cm$Outflow.cfs)
+swmm_h5l5_inflow_plus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_plus5cm$Inflow.cfs)
+swmm_h5l5_outflow_plus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_plus5cm$Outflow.cfs)
+
+# -5cm bias
+swmm_h5l5_inflow_minus5cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_minus5cm$Inflow.cfs)
+swmm_h5l5_outflow_minus5cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_minus5cm$Outflow.cfs)
+swmm_h5l5_inflow_minus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_minus5cm$Inflow.cfs)
+swmm_h5l5_outflow_minus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_minus5cm$Outflow.cfs)
+
+# +1cm bias and typical noise
+swmm_h5l5_inflow_typical_noise_plus1cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_typical_noise_plus1cm$Inflow.cfs)
+swmm_h5l5_outflow_typical_noise_plus1cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_typical_noise_plus1cm$Outflow.cfs)
+swmm_h5l5_inflow_typical_noise_plus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_typical_noise_plus1cm$Inflow.cfs)
+swmm_h5l5_outflow_typical_noise_plus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_typical_noise_plus1cm$Outflow.cfs)
+
+# -1cm bias and typical noise
+swmm_h5l5_inflow_typical_noise_minus1cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_typical_noise_minus1cm$Inflow.cfs)
+swmm_h5l5_outflow_typical_noise_minus1cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_typical_noise_minus1cm$Outflow.cfs)
+swmm_h5l5_inflow_typical_noise_minus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_typical_noise_minus1cm$Inflow.cfs)
+swmm_h5l5_outflow_typical_noise_minus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_typical_noise_minus1cm$Outflow.cfs)
+
+# +5cm bias and typical noise
+swmm_h5l5_inflow_typical_noise_plus5cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_typical_noise_plus5cm$Inflow.cfs)
+swmm_h5l5_outflow_typical_noise_plus5cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_typical_noise_plus5cm$Outflow.cfs)
+swmm_h5l5_inflow_typical_noise_plus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_typical_noise_plus5cm$Inflow.cfs)
+swmm_h5l5_outflow_typical_noise_plus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_typical_noise_plus5cm$Outflow.cfs)
+
+# -5cm bias and typical noise
+swmm_h5l5_inflow_typical_noise_minus5cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_typical_noise_minus5cm$Inflow.cfs)
+swmm_h5l5_outflow_typical_noise_minus5cm_diff <- calc_magnitude_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_typical_noise_minus5cm$Outflow.cfs)
+swmm_h5l5_inflow_typical_noise_minus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Inflow.cfs, swmm_results_h5l5_typical_noise_minus5cm$Inflow.cfs)
+swmm_h5l5_outflow_typical_noise_minus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l5_base$Outflow.cfs, swmm_results_h5l5_typical_noise_minus5cm$Outflow.cfs)
+
+```
+
+SWMM Results Differences H=5, L=1
+```{r}
+# Calculate percent and magnitude difference from the base results
+
+# Typical noise
+swmm_h5l1_inflow_typical_noise_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_typical_noise$Inflow.cfs)
+swmm_h5l1_outflow_typical_noise_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_typical_noise$Outflow.cfs)
+swmm_h5l1_inflow_typical_noise_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_typical_noise$Inflow.cfs)
+swmm_h5l1_outflow_typical_noise_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_typical_noise$Outflow.cfs)
+
+# Maximum noise
+swmm_h5l1_inflow_max_noise_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_max_noise$Inflow.cfs)
+swmm_h5l1_outflow_max_noise_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_max_noise$Outflow.cfs)
+swmm_h5l1_inflow_max_noise_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_max_noise$Inflow.cfs)
+swmm_h5l1_outflow_max_noise_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_max_noise$Outflow.cfs)
+
+# +1cm bias
+swmm_h5l1_inflow_plus1cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_plus1cm$Inflow.cfs)
+swmm_h5l1_outflow_plus1cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_plus1cm$Outflow.cfs)
+swmm_h5l1_inflow_plus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_plus1cm$Inflow.cfs)
+swmm_h5l1_outflow_plus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_plus1cm$Outflow.cfs)
+
+# -1cm bias
+swmm_h5l1_inflow_minus1cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_minus1cm$Inflow.cfs)
+swmm_h5l1_outflow_minus1cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_minus1cm$Outflow.cfs)
+swmm_h5l1_inflow_minus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_minus1cm$Inflow.cfs)
+swmm_h5l1_outflow_minus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_minus1cm$Outflow.cfs)
+
+# +5cm bias
+swmm_h5l1_inflow_plus5cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_plus5cm$Inflow.cfs)
+swmm_h5l1_outflow_plus5cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_plus5cm$Outflow.cfs)
+swmm_h5l1_inflow_plus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_plus5cm$Inflow.cfs)
+swmm_h5l1_outflow_plus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_plus5cm$Outflow.cfs)
+
+# -5cm bias
+swmm_h5l1_inflow_minus5cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_minus5cm$Inflow.cfs)
+swmm_h5l1_outflow_minus5cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_minus5cm$Outflow.cfs)
+swmm_h5l1_inflow_minus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_minus5cm$Inflow.cfs)
+swmm_h5l1_outflow_minus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_minus5cm$Outflow.cfs)
+
+# +1cm bias and typical noise
+swmm_h5l1_inflow_typical_noise_plus1cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_typical_noise_plus1cm$Inflow.cfs)
+swmm_h5l1_outflow_typical_noise_plus1cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_typical_noise_plus1cm$Outflow.cfs)
+swmm_h5l1_inflow_typical_noise_plus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_typical_noise_plus1cm$Inflow.cfs)
+swmm_h5l1_outflow_typical_noise_plus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_typical_noise_plus1cm$Outflow.cfs)
+
+# -1cm bias and typical noise
+swmm_h5l1_inflow_typical_noise_minus1cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_typical_noise_minus1cm$Inflow.cfs)
+swmm_h5l1_outflow_typical_noise_minus1cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_typical_noise_minus1cm$Outflow.cfs)
+swmm_h5l1_inflow_typical_noise_minus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_typical_noise_minus1cm$Inflow.cfs)
+swmm_h5l1_outflow_typical_noise_minus1cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_typical_noise_minus1cm$Outflow.cfs)
+
+# +5cm bias and typical noise
+swmm_h5l1_inflow_typical_noise_plus5cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_typical_noise_plus5cm$Inflow.cfs)
+swmm_h5l1_outflow_typical_noise_plus5cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_typical_noise_plus5cm$Outflow.cfs)
+swmm_h5l1_inflow_typical_noise_plus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_typical_noise_plus5cm$Inflow.cfs)
+swmm_h5l1_outflow_typical_noise_plus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_typical_noise_plus5cm$Outflow.cfs)
+
+# -5cm bias and typical noise
+swmm_h5l1_inflow_typical_noise_minus5cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_typical_noise_minus5cm$Inflow.cfs)
+swmm_h5l1_outflow_typical_noise_minus5cm_diff <- calc_magnitude_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_typical_noise_minus5cm$Outflow.cfs)
+swmm_h5l1_inflow_typical_noise_minus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Inflow.cfs, swmm_results_h5l1_typical_noise_minus5cm$Inflow.cfs)
+swmm_h5l1_outflow_typical_noise_minus5cm_percent_diff <- calc_percent_difference(swmm_results_h5l1_base$Outflow.cfs, swmm_results_h5l1_typical_noise_minus5cm$Outflow.cfs)
 
 ```
 
