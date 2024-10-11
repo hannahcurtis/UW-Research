@@ -6489,7 +6489,7 @@ get_attenuation <- function(inflow, outflow, index_start, index_end) {
 }
 ```
 
-Attenuation Raw
+Attenuation Raw 8/14 (medium storm)
 ```{r}
 #Garner
 get_attenuation(avg_inflow_raw_gar, avg_outflow_raw_gar, 27256, 27656)
@@ -6533,7 +6533,7 @@ get_attenuation(avg_inflow_raw_da22, avg_outflow_raw_da22, 27256, 27656)
 get_attenuation(avg_inflow_raw_hos, avg_outflow_raw_hos, 27256, 27656)
 ```
 
-Attenuation Smoothed (3 point average)
+Attenuation 3-point Average Smoothed 8/14 (medium storm) 
 ```{r}
 #Garner
 get_attenuation(avg_inflow_gar, avg_outflow_gar, 27256, 27656)
@@ -6577,7 +6577,7 @@ get_attenuation(avg_inflow_da22, avg_outflow_da22, 27256, 27656)
 get_attenuation(avg_inflow_hos, avg_outflow_hos, 27256, 27656)
 ```
 
-Attenuation Smoothed (15 min)
+Attenuation Smoothed 8/14 (15 min)
 ```{r}
 #Garner
 get_attenuation(avg_inflow_15min_gar, avg_outflow_15min_gar, 3028, 3072)
@@ -6621,7 +6621,7 @@ get_attenuation(avg_inflow_15min_da22, avg_outflow_15min_da22, 3028, 3072)
 get_attenuation(avg_inflow_15min_hos, avg_outflow_15min_hos, 3028, 3072)
 ```
 
-Attenuation Noise
+Attenuation Noise 8/14
 ```{r}
 #Garner
 get_attenuation(avg_inflow_gar_noise, avg_outflow_gar_noise, 27256, 27656)
@@ -6665,7 +6665,7 @@ get_attenuation(avg_inflow_da22_noise, avg_outflow_da22_noise, 27256, 27656)
 get_attenuation(avg_inflow_hos_noise, avg_outflow_hos_noise, 27256, 27656)
 ```
 
-Attenuation WL +0.5in
+Attenuation WL +0.5in 8/14
 ```{r}
 #Garner
 get_attenuation(avg_inflow_gar_plus0.5, avg_outflow_gar_plus0.5, 27256, 27656)
@@ -6709,7 +6709,7 @@ get_attenuation(avg_inflow_da22_plus0.5, avg_outflow_da22_plus0.5, 27256, 27656)
 get_attenuation(avg_inflow_hos_plus0.5, avg_outflow_hos_plus0.5, 27256, 27656)
 ```
 
-Attenuation WL -0.5in
+Attenuation WL -0.5in 8/14
 ```{r}
 #Garner
 get_attenuation(avg_inflow_gar_minus0.5, avg_outflow_gar_minus0.5, 27256, 27656)
@@ -6753,7 +6753,7 @@ get_attenuation(avg_inflow_da22_minus0.5, avg_outflow_da22_minus0.5, 27256, 2765
 get_attenuation(avg_inflow_hos_minus0.5, avg_outflow_hos_minus0.5, 27256, 27656)
 ```
 
-Attenuation +1in
+Attenuation +1in 8/14
 ```{r}
 #Garner
 get_attenuation(avg_inflow_gar_plus1, avg_outflow_gar_plus1, 27256, 27656)
@@ -6797,7 +6797,7 @@ get_attenuation(avg_inflow_da22_plus1, avg_outflow_da22_plus1, 27256, 27656)
 get_attenuation(avg_inflow_hos_plus1, avg_outflow_hos_plus1, 27256, 27656)
 ```
 
-Attenuation -1in
+Attenuation -1in 8/14
 ```{r}
 #Garner
 get_attenuation(avg_inflow_gar_minus1, avg_outflow_gar_minus1, 27256, 27656)
@@ -6839,5 +6839,714 @@ get_attenuation(avg_inflow_owen_minus1, avg_outflow_owen_minus1, 27256, 27656)
 get_attenuation(avg_inflow_da22_minus1, avg_outflow_da22_minus1, 27256, 27656)
 #Hospital
 get_attenuation(avg_inflow_hos_minus1, avg_outflow_hos_minus1, 27256, 27656)
+```
+
+Attenuation Raw 7/29 (large storm)
+```{r}
+#Garner
+get_attenuation(avg_inflow_raw_gar, avg_outflow_raw_gar, 22599, 22999)
+#DobA5
+#get_attenuation(avg_inflow_raw_da5, avg_outflow_raw_da5, 8686, 9086)
+#Manitou
+get_attenuation(avg_inflow_raw_man, avg_outflow_raw_man, 22359, 22759)
+#Midtown
+#get_attenuation(avg_inflow_raw_mid, avg_outflow_raw_mid, 1289, 1689)
+#Baxter
+get_attenuation(avg_inflow_raw_bax, avg_outflow_raw_bax, 22550, 22950)
+#DobA8
+get_attenuation(avg_inflow_raw_da8, avg_outflow_raw_da8, 22599, 22999)
+#Elver
+get_attenuation(avg_inflow_raw_elver, avg_outflow_raw_elver, 22599, 22999)
+#HP Church
+get_attenuation(avg_inflow_raw_hp, avg_outflow_raw_hp, 22477, 22877)
+#Door Creek
+get_attenuation(avg_inflow_raw_dc, avg_outflow_raw_dc, 22515, 22915)
+#Comm Ave
+get_attenuation(avg_inflow_raw_ca, avg_outflow_raw_ca, 22494, 22894)
+#Greentree
+get_attenuation(avg_inflow_raw_gt, avg_outflow_raw_gt, 22599, 22999)
+#DobA7
+get_attenuation(avg_inflow_raw_da7, avg_outflow_raw_da7, 22599, 22999)
+#Lot 60
+get_attenuation(avg_inflow_raw_l60, avg_outflow_raw_l60, 22599, 22999)
+#Two Fountains
+get_attenuation(avg_inflow_raw_tf, avg_outflow_raw_tf, 22599, 22999)
+#DobA4
+get_attenuation(avg_inflow_raw_da4, avg_outflow_raw_da4, 22508, 22908)
+#Marion-Dunn
+get_attenuation(avg_inflow_raw_md, avg_outflow_raw_md, 22599, 22999)
+#Mad City
+get_attenuation(avg_inflow_raw_mc, avg_outflow_raw_mc, 22599, 22999)
+#Owen
+get_attenuation(avg_inflow_raw_owen, avg_outflow_raw_owen, 22599, 22999)
+#DobA22
+get_attenuation(avg_inflow_raw_da22, avg_outflow_raw_da22, 22599, 22999)
+#Hospital
+get_attenuation(avg_inflow_raw_hos, avg_outflow_raw_hos, 22599, 22999)
+```
+
+Attenuation 3-point Average Smoothed 7/29 (large storm) 
+```{r}
+#Garner
+get_attenuation(avg_inflow_gar, avg_outflow_gar, 22599, 22999)
+#DobA5
+#get_attenuation(avg_inflow_da5, avg_outflow_da5, 8686, 9086)
+#Manitou
+get_attenuation(avg_inflow_man, avg_outflow_man, 22359, 22759)
+#Midtown
+#get_attenuation(avg_inflow_mid, avg_outflow_mid, 1289, 1689)
+#Baxter
+get_attenuation(avg_inflow_bax, avg_outflow_bax, 22550, 22950)
+#DobA8
+get_attenuation(avg_inflow_da8, avg_outflow_da8, 22599, 22999)
+#Elver
+get_attenuation(avg_inflow_elver, avg_outflow_elver, 22599, 22999)
+#HP Church
+get_attenuation(avg_inflow_hp, avg_outflow_hp, 22477, 22877)
+#Door Creek
+get_attenuation(avg_inflow_dc, avg_outflow_dc, 22515, 22915)
+#Comm Ave
+get_attenuation(avg_inflow_ca, avg_outflow_ca, 22494, 22894)
+#Greentree
+get_attenuation(avg_inflow_gt, avg_outflow_gt, 22599, 22999)
+#DobA7
+get_attenuation(avg_inflow_da7, avg_outflow_da7, 22599, 22999)
+#Lot 60
+get_attenuation(avg_inflow_l60, avg_outflow_l60, 22599, 22999)
+#Two Fountains
+get_attenuation(avg_inflow_tf, avg_outflow_tf, 22599, 22999)
+#DobA4
+get_attenuation(avg_inflow_da4, avg_outflow_da4, 22508, 22908)
+#Marion-Dunn
+get_attenuation(avg_inflow_md, avg_outflow_md, 22599, 22999)
+#Mad City
+get_attenuation(avg_inflow_mc, avg_outflow_mc, 22599, 22999)
+#Owen
+get_attenuation(avg_inflow_owen, avg_outflow_owen, 22599, 22999)
+#DobA22
+get_attenuation(avg_inflow_da22, avg_outflow_da22, 22599, 22999)
+#Hospital
+get_attenuation(avg_inflow_hos, avg_outflow_hos, 22599, 22999)
+```
+
+Attenuation Smoothed 7/29 (15 min)
+```{r}
+#Garner
+get_attenuation(avg_inflow_15min_gar, avg_outflow_15min_gar, 3028, 3072)
+#DobA5
+get_attenuation(avg_inflow_15min_da5, avg_outflow_15min_da5, 965, 1009)
+#Manitou
+get_attenuation(avg_inflow_15min_man, avg_outflow_15min_man, 3028, 3072)
+#Midtown
+get_attenuation(avg_inflow_15min_mid, avg_outflow_15min_mid, 143, 188)
+#Baxter
+get_attenuation(avg_inflow_15min_bax, avg_outflow_15min_bax, 3023, 3067)
+#DobA8
+get_attenuation(avg_inflow_15min_da8, avg_outflow_15min_da8, 3028, 3072)
+#Elver
+get_attenuation(avg_inflow_15min_elver, avg_outflow_15min_elver, 3028, 3072)
+#HP Church
+get_attenuation(avg_inflow_15min_hp, avg_outflow_15min_hp, 3014, 3059)
+#Door Creek
+get_attenuation(avg_inflow_15min_dc, avg_outflow_15min_dc, 3019, 3063)
+#Comm Ave
+get_attenuation(avg_inflow_15min_ca, avg_outflow_15min_ca, 3016, 3061)
+#Greentree
+get_attenuation(avg_inflow_15min_gt, avg_outflow_15min_gt, 3028, 3072)
+#DobA7
+get_attenuation(avg_inflow_15min_da7, avg_outflow_15min_da7, 3028, 3072)
+#Lot 60
+get_attenuation(avg_inflow_15min_l60, avg_outflow_15min_l60, 3028, 3072)
+#Two Fountains
+get_attenuation(avg_inflow_15min_tf, avg_outflow_15min_tf, 3028, 3072)
+#DobA4
+get_attenuation(avg_inflow_15min_da4, avg_outflow_15min_da4, 3018, 3062)
+#Marion-Dunn
+get_attenuation(avg_inflow_15min_md, avg_outflow_15min_md, 3028, 3072)
+#Mad City
+get_attenuation(avg_inflow_15min_mc, avg_outflow_15min_mc, 3028, 3072)
+#Owen
+get_attenuation(avg_inflow_15min_owen, avg_outflow_15min_owen, 3028, 3072)
+#DobA22
+get_attenuation(avg_inflow_15min_da22, avg_outflow_15min_da22, 3028, 3072)
+#Hospital
+get_attenuation(avg_inflow_15min_hos, avg_outflow_15min_hos, 3028, 3072)
+```
+
+Attenuation Noise 7/29
+```{r}
+#Garner
+get_attenuation(avg_inflow_raw_gar_noise, avg_outflow_raw_gar_noise, 22599, 22999)
+#DobA5
+#get_attenuation(avg_inflow_raw_da5_noise, avg_outflow_raw_da5_noise, 8686, 9086)
+#Manitou
+get_attenuation(avg_inflow_raw_man_noise, avg_outflow_raw_man_noise, 22359, 22759)
+#Midtown
+#get_attenuation(avg_inflow_raw_mid_noise, avg_outflow_raw_mid_noise, 1289, 1689)
+#Baxter
+get_attenuation(avg_inflow_raw_bax_noise, avg_outflow_raw_bax_noise, 22550, 22950)
+#DobA8
+get_attenuation(avg_inflow_raw_da8_noise, avg_outflow_raw_da8_noise, 22599, 22999)
+#Elver
+get_attenuation(avg_inflow_raw_elver_noise, avg_outflow_raw_elver_noise, 22599, 22999)
+#HP Church
+get_attenuation(avg_inflow_raw_hp_noise, avg_outflow_raw_hp_noise, 22477, 22877)
+#Door Creek
+get_attenuation(avg_inflow_raw_dc_noise, avg_outflow_raw_dc_noise, 22515, 22915)
+#Comm Ave
+get_attenuation(avg_inflow_raw_ca_noise, avg_outflow_raw_ca_noise, 22494, 22894)
+#Greentree
+get_attenuation(avg_inflow_raw_gt_noise, avg_outflow_raw_gt_noise, 22599, 22999)
+#DobA7
+get_attenuation(avg_inflow_raw_da7_noise, avg_outflow_raw_da7_noise, 22599, 22999)
+#Lot 60
+get_attenuation(avg_inflow_raw_l60_noise, avg_outflow_raw_l60_noise, 22599, 22999)
+#Two Fountains
+get_attenuation(avg_inflow_raw_tf_noise, avg_outflow_raw_tf_noise, 22599, 22999)
+#DobA4
+get_attenuation(avg_inflow_raw_da4_noise, avg_outflow_raw_da4_noise, 22508, 22908)
+#Marion-Dunn
+get_attenuation(avg_inflow_raw_md_noise, avg_outflow_raw_md_noise, 22599, 22999)
+#Mad City
+get_attenuation(avg_inflow_raw_mc_noise, avg_outflow_raw_mc_noise, 22599, 22999)
+#Owen
+get_attenuation(avg_inflow_raw_owen_noise, avg_outflow_raw_owen_noise, 22599, 22999)
+#DobA22
+get_attenuation(avg_inflow_raw_da22_noise, avg_outflow_raw_da22_noise, 22599, 22999)
+#Hospital
+get_attenuation(avg_inflow_raw_hos_noise, avg_outflow_raw_hos_noise, 22599, 22999)
+```
+
+Attenuation WL +0.5in 7/29
+```{r}
+#Garner
+get_attenuation(avg_inflow_raw_gar_plus0.5, avg_outflow_raw_gar_plus0.5, 22599, 22999)
+#DobA5
+#get_attenuation(avg_inflow_raw_da5_plus0.5, avg_outflow_raw_da5_plus0.5, 8686, 9086)
+#Manitou
+get_attenuation(avg_inflow_raw_man_plus0.5, avg_outflow_raw_man_plus0.5, 22359, 22759)
+#Midtown
+#get_attenuation(avg_inflow_raw_mid_plus0.5, avg_outflow_raw_mid_plus0.5, 1289, 1689)
+#Baxter
+get_attenuation(avg_inflow_raw_bax_plus0.5, avg_outflow_raw_bax_plus0.5, 22550, 22950)
+#DobA8
+get_attenuation(avg_inflow_raw_da8_plus0.5, avg_outflow_raw_da8_plus0.5, 22599, 22999)
+#Elver
+get_attenuation(avg_inflow_raw_elver_plus0.5, avg_outflow_raw_elver_plus0.5, 22599, 22999)
+#HP Church
+get_attenuation(avg_inflow_raw_hp_plus0.5, avg_outflow_raw_hp_plus0.5, 22477, 22877)
+#Door Creek
+get_attenuation(avg_inflow_raw_dc_plus0.5, avg_outflow_raw_dc_plus0.5, 22515, 22915)
+#Comm Ave
+get_attenuation(avg_inflow_raw_ca_plus0.5, avg_outflow_raw_ca_plus0.5, 22494, 22894)
+#Greentree
+get_attenuation(avg_inflow_raw_gt_plus0.5, avg_outflow_raw_gt_plus0.5, 22599, 22999)
+#DobA7
+get_attenuation(avg_inflow_raw_da7_plus0.5, avg_outflow_raw_da7_plus0.5, 22599, 22999)
+#Lot 60
+get_attenuation(avg_inflow_raw_l60_plus0.5, avg_outflow_raw_l60_plus0.5, 22599, 22999)
+#Two Fountains
+get_attenuation(avg_inflow_raw_tf_plus0.5, avg_outflow_raw_tf_plus0.5, 22599, 22999)
+#DobA4
+get_attenuation(avg_inflow_raw_da4_plus0.5, avg_outflow_raw_da4_plus0.5, 22508, 22908)
+#Marion-Dunn
+get_attenuation(avg_inflow_raw_md_plus0.5, avg_outflow_raw_md_plus0.5, 22599, 22999)
+#Mad City
+get_attenuation(avg_inflow_raw_mc_plus0.5, avg_outflow_raw_mc_plus0.5, 22599, 22999)
+#Owen
+get_attenuation(avg_inflow_raw_owen_plus0.5, avg_outflow_raw_owen_plus0.5, 22599, 22999)
+#DobA22
+get_attenuation(avg_inflow_raw_da22_plus0.5, avg_outflow_raw_da22_plus0.5, 22599, 22999)
+#Hospital
+get_attenuation(avg_inflow_raw_hos_plus0.5, avg_outflow_raw_hos_plus0.5, 22599, 22999)
+```
+
+Attenuation WL -0.5in 7/29
+```{r}
+#Garner
+get_attenuation(avg_inflow_raw_gar_minus0.5, avg_outflow_raw_gar_minus0.5, 22599, 22999)
+#DobA5
+#get_attenuation(avg_inflow_raw_da5_minus0.5, avg_outflow_raw_da5_minus0.5, 8686, 9086)
+#Manitou
+get_attenuation(avg_inflow_raw_man_minus0.5, avg_outflow_raw_man_minus0.5, 22359, 22759)
+#Midtown
+#get_attenuation(avg_inflow_raw_mid_minus0.5, avg_outflow_raw_mid_minus0.5, 1289, 1689)
+#Baxter
+get_attenuation(avg_inflow_raw_bax_minus0.5, avg_outflow_raw_bax_minus0.5, 22550, 22950)
+#DobA8
+get_attenuation(avg_inflow_raw_da8_minus0.5, avg_outflow_raw_da8_minus0.5, 22599, 22999)
+#Elver
+get_attenuation(avg_inflow_raw_elver_minus0.5, avg_outflow_raw_elver_minus0.5, 22599, 22999)
+#HP Church
+get_attenuation(avg_inflow_raw_hp_minus0.5, avg_outflow_raw_hp_minus0.5, 22477, 22877)
+#Door Creek
+get_attenuation(avg_inflow_raw_dc_minus0.5, avg_outflow_raw_dc_minus0.5, 22515, 22915)
+#Comm Ave
+get_attenuation(avg_inflow_raw_ca_minus0.5, avg_outflow_raw_ca_minus0.5, 22494, 22894)
+#Greentree
+get_attenuation(avg_inflow_raw_gt_minus0.5, avg_outflow_raw_gt_minus0.5, 22599, 22999)
+#DobA7
+get_attenuation(avg_inflow_raw_da7_minus0.5, avg_outflow_raw_da7_minus0.5, 22599, 22999)
+#Lot 60
+get_attenuation(avg_inflow_raw_l60_minus0.5, avg_outflow_raw_l60_minus0.5, 22599, 22999)
+#Two Fountains
+get_attenuation(avg_inflow_raw_tf_minus0.5, avg_outflow_raw_tf_minus0.5, 22599, 22999)
+#DobA4
+get_attenuation(avg_inflow_raw_da4_minus0.5, avg_outflow_raw_da4_minus0.5, 22508, 22908)
+#Marion-Dunn
+get_attenuation(avg_inflow_raw_md_minus0.5, avg_outflow_raw_md_minus0.5, 22599, 22999)
+#Mad City
+get_attenuation(avg_inflow_raw_mc_minus0.5, avg_outflow_raw_mc_minus0.5, 22599, 22999)
+#Owen
+get_attenuation(avg_inflow_raw_owen_minus0.5, avg_outflow_raw_owen_minus0.5, 22599, 22999)
+#DobA22
+get_attenuation(avg_inflow_raw_da22_minus0.5, avg_outflow_raw_da22_minus0.5, 22599, 22999)
+#Hospital
+get_attenuation(avg_inflow_raw_hos_minus0.5, avg_outflow_raw_hos_minus0.5, 22599, 22999)
+```
+
+Attenuation +1in 7/29
+```{r}
+#Garner
+get_attenuation(avg_inflow_raw_gar_plus1, avg_outflow_raw_gar_plus1, 22599, 22999)
+#DobA5
+#get_attenuation(avg_inflow_raw_da5_plus1, avg_outflow_raw_da5_plus1, 8686, 9086)
+#Manitou
+get_attenuation(avg_inflow_raw_man_plus1, avg_outflow_raw_man_plus1, 22359, 22759)
+#Midtown
+#get_attenuation(avg_inflow_raw_mid_plus1, avg_outflow_raw_mid_plus1, 1289, 1689)
+#Baxter
+get_attenuation(avg_inflow_raw_bax_plus1, avg_outflow_raw_bax_plus1, 22550, 22950)
+#DobA8
+get_attenuation(avg_inflow_raw_da8_plus1, avg_outflow_raw_da8_plus1, 22599, 22999)
+#Elver
+get_attenuation(avg_inflow_raw_elver_plus1, avg_outflow_raw_elver_plus1, 22599, 22999)
+#HP Church
+get_attenuation(avg_inflow_raw_hp_plus1, avg_outflow_raw_hp_plus1, 22477, 22877)
+#Door Creek
+get_attenuation(avg_inflow_raw_dc_plus1, avg_outflow_raw_dc_plus1, 22515, 22915)
+#Comm Ave
+get_attenuation(avg_inflow_raw_ca_plus1, avg_outflow_raw_ca_plus1, 22494, 22894)
+#Greentree
+get_attenuation(avg_inflow_raw_gt_plus1, avg_outflow_raw_gt_plus1, 22599, 22999)
+#DobA7
+get_attenuation(avg_inflow_raw_da7_plus1, avg_outflow_raw_da7_plus1, 22599, 22999)
+#Lot 60
+get_attenuation(avg_inflow_raw_l60_plus1, avg_outflow_raw_l60_plus1, 22599, 22999)
+#Two Fountains
+get_attenuation(avg_inflow_raw_tf_plus1, avg_outflow_raw_tf_plus1, 22599, 22999)
+#DobA4
+get_attenuation(avg_inflow_raw_da4_plus1, avg_outflow_raw_da4_plus1, 22508, 22908)
+#Marion-Dunn
+get_attenuation(avg_inflow_raw_md_plus1, avg_outflow_raw_md_plus1, 22599, 22999)
+#Mad City
+get_attenuation(avg_inflow_raw_mc_plus1, avg_outflow_raw_mc_plus1, 22599, 22999)
+#Owen
+get_attenuation(avg_inflow_raw_owen_plus1, avg_outflow_raw_owen_plus1, 22599, 22999)
+#DobA22
+get_attenuation(avg_inflow_raw_da22_plus1, avg_outflow_raw_da22_plus1, 22599, 22999)
+#Hospital
+get_attenuation(avg_inflow_raw_hos_plus1, avg_outflow_raw_hos_plus1, 22599, 22999)
+```
+
+Attenuation -1in 7/29
+```{r}
+#Garner
+get_attenuation(avg_inflow_raw_gar_minus1, avg_outflow_raw_gar_minus1, 22599, 22999)
+#DobA5
+#get_attenuation(avg_inflow_raw_da5_minus1, avg_outflow_raw_da5_minus1, 8686, 9086)
+#Manitou
+get_attenuation(avg_inflow_raw_man_minus1, avg_outflow_raw_man_minus1, 22359, 22759)
+#Midtown
+#get_attenuation(avg_inflow_raw_mid_minus1, avg_outflow_raw_mid_minus1, 1289, 1689)
+#Baxter
+get_attenuation(avg_inflow_raw_bax_minus1, avg_outflow_raw_bax_minus1, 22550, 22950)
+#DobA8
+get_attenuation(avg_inflow_raw_da8_minus1, avg_outflow_raw_da8_minus1, 22599, 22999)
+#Elver
+get_attenuation(avg_inflow_raw_elver_minus1, avg_outflow_raw_elver_minus1, 22599, 22999)
+#HP Church
+get_attenuation(avg_inflow_raw_hp_minus1, avg_outflow_raw_hp_minus1, 22477, 22877)
+#Door Creek
+get_attenuation(avg_inflow_raw_dc_minus1, avg_outflow_raw_dc_minus1, 22515, 22915)
+#Comm Ave
+get_attenuation(avg_inflow_raw_ca_minus1, avg_outflow_raw_ca_minus1, 22494, 22894)
+#Greentree
+get_attenuation(avg_inflow_raw_gt_minus1, avg_outflow_raw_gt_minus1, 22599, 22999)
+#DobA7
+get_attenuation(avg_inflow_raw_da7_minus1, avg_outflow_raw_da7_minus1, 22599, 22999)
+#Lot 60
+get_attenuation(avg_inflow_raw_l60_minus1, avg_outflow_raw_l60_minus1, 22599, 22999)
+#Two Fountains
+get_attenuation(avg_inflow_raw_tf_minus1, avg_outflow_raw_tf_minus1, 22599, 22999)
+#DobA4
+get_attenuation(avg_inflow_raw_da4_minus1, avg_outflow_raw_da4_minus1, 22508, 22908)
+#Marion-Dunn
+get_attenuation(avg_inflow_raw_md_minus1, avg_outflow_raw_md_minus1, 22599, 22999)
+#Mad City
+get_attenuation(avg_inflow_raw_mc_minus1, avg_outflow_raw_mc_minus1, 22599, 22999)
+#Owen
+get_attenuation(avg_inflow_raw_owen_minus1, avg_outflow_raw_owen_minus1, 22599, 22999)
+#DobA22
+get_attenuation(avg_inflow_raw_da22_minus1, avg_outflow_raw_da22_minus1, 22599, 22999)
+#Hospital
+get_attenuation(avg_inflow_raw_hos_minus1, avg_outflow_raw_hos_minus1, 22599, 22999)
+```
+
+Attenuation Raw 9/24 (small storm)
+```{r}
+#Garner
+get_attenuation(avg_inflow_raw_gar, avg_outflow_raw_gar, 39500, 39900)
+#DobA5
+get_attenuation(avg_inflow_raw_da5, avg_outflow_raw_da5, 20785, 21185)
+#Manitou
+get_attenuation(avg_inflow_raw_man, avg_outflow_raw_man, 39500, 39900)
+#Midtown
+get_attenuation(avg_inflow_raw_mid, avg_outflow_raw_mid, 13500, 13900)
+#Baxter
+get_attenuation(avg_inflow_raw_bax, avg_outflow_raw_bax, 39552, 39952)
+#DobA8
+get_attenuation(avg_inflow_raw_da8, avg_outflow_raw_da8, 39500, 39900)
+#Elver
+get_attenuation(avg_inflow_raw_elver, avg_outflow_raw_elver, 39500, 39900)
+#HP Church
+get_attenuation(avg_inflow_raw_hp, avg_outflow_raw_hp, 39500, 39900)
+#Door Creek
+get_attenuation(avg_inflow_raw_dc, avg_outflow_raw_dc, 39500, 39900)
+#Comm Ave
+get_attenuation(avg_inflow_raw_ca, avg_outflow_raw_ca, 39500, 39900)
+#Greentree
+get_attenuation(avg_inflow_raw_gt, avg_outflow_raw_gt, 39500, 39900)
+#DobA7
+get_attenuation(avg_inflow_raw_da7, avg_outflow_raw_da7, 39500, 39900)
+#Lot 60
+get_attenuation(avg_inflow_raw_l60, avg_outflow_raw_l60, 39500, 39900)
+#Two Fountains
+get_attenuation(avg_inflow_raw_tf, avg_outflow_raw_tf, 39500, 39900)
+#DobA4
+get_attenuation(avg_inflow_raw_da4, avg_outflow_raw_da4, 39500, 39900)
+#Marion-Dunn
+get_attenuation(avg_inflow_raw_md, avg_outflow_raw_md, 39500, 39900)
+#Mad City
+get_attenuation(avg_inflow_raw_mc, avg_outflow_raw_mc, 39500, 39900)
+#Owen
+get_attenuation(avg_inflow_raw_owen, avg_outflow_raw_owen, 39500, 39900)
+#DobA22
+get_attenuation(avg_inflow_raw_da22, avg_outflow_raw_da22, 39500, 39900)
+#Hospital
+get_attenuation(avg_inflow_raw_hos, avg_outflow_raw_hos, 39500, 39900)
+```
+
+Attenuation 3-point Average Smoothed 9/24 (small storm)
+```{r}
+#Garner
+get_attenuation(avg_inflow_gar, avg_outflow_gar, 39500, 39900)
+#DobA5
+get_attenuation(avg_inflow_da5, avg_outflow_da5, 20785, 21185)
+#Manitou
+get_attenuation(avg_inflow_man, avg_outflow_man, 39500, 39900)
+#Midtown
+get_attenuation(avg_inflow_mid, avg_outflow_mid, 13500, 13900)
+#Baxter
+get_attenuation(avg_inflow_bax, avg_outflow_bax, 39552, 39952)
+#DobA8
+get_attenuation(avg_inflow_da8, avg_outflow_da8, 39500, 39900)
+#Elver
+get_attenuation(avg_inflow_elver, avg_outflow_elver, 39500, 39900)
+#HP Church
+get_attenuation(avg_inflow_hp, avg_outflow_hp, 39500, 39800)
+#Door Creek
+get_attenuation(avg_inflow_dc, avg_outflow_dc, 39500, 39900)
+#Comm Ave
+get_attenuation(avg_inflow_ca, avg_outflow_ca, 39500, 39900)
+#Greentree
+get_attenuation(avg_inflow_gt, avg_outflow_gt, 39500, 39900)
+#DobA7
+get_attenuation(avg_inflow_da7, avg_outflow_da7, 39500, 39900)
+#Lot 60
+get_attenuation(avg_inflow_l60, avg_outflow_l60, 39500, 39900)
+#Two Fountains
+get_attenuation(avg_inflow_tf, avg_outflow_tf, 39500, 39900)
+#DobA4
+get_attenuation(avg_inflow_da4, avg_outflow_da4, 39500, 39900)
+#Marion-Dunn
+get_attenuation(avg_inflow_md, avg_outflow_md, 39500, 39900)
+#Mad City
+get_attenuation(avg_inflow_mc, avg_outflow_mc, 39500, 39900)
+#Owen
+get_attenuation(avg_inflow_owen, avg_outflow_owen, 39500, 39900)
+#DobA22
+get_attenuation(avg_inflow_da22, avg_outflow_da22, 39500, 39900)
+#Hospital
+get_attenuation(avg_inflow_hos, avg_outflow_hos, 39500, 39900)
+```
+
+Attenuation Smoothed 9/24 (small storm)
+```{r}
+#Garner
+get_attenuation(avg_inflow_15min_gar, avg_outflow_15min_gar, 3028, 3072)
+#DobA5
+get_attenuation(avg_inflow_15min_da5, avg_outflow_15min_da5, 965, 1009)
+#Manitou
+get_attenuation(avg_inflow_15min_man, avg_outflow_15min_man, 3028, 3072)
+#Midtown
+get_attenuation(avg_inflow_15min_mid, avg_outflow_15min_mid, 13500:13900)
+#Baxter
+get_attenuation(avg_inflow_15min_bax, avg_outflow_15min_bax, 3023, 3067)
+#DobA8
+get_attenuation(avg_inflow_15min_da8, avg_outflow_15min_da8, 3028, 3072)
+#Elver
+get_attenuation(avg_inflow_15min_elver, avg_outflow_15min_elver, 3028, 3072)
+#HP Church
+get_attenuation(avg_inflow_15min_hp, avg_outflow_15min_hp, 3014, 3059)
+#Door Creek
+get_attenuation(avg_inflow_15min_dc, avg_outflow_15min_dc, 3019, 3063)
+#Comm Ave
+get_attenuation(avg_inflow_15min_ca, avg_outflow_15min_ca, 3016, 3061)
+#Greentree
+get_attenuation(avg_inflow_15min_gt, avg_outflow_15min_gt, 3028, 3072)
+#DobA7
+get_attenuation(avg_inflow_15min_da7, avg_outflow_15min_da7, 3028, 3072)
+#Lot 60
+get_attenuation(avg_inflow_15min_l60, avg_outflow_15min_l60, 3028, 3072)
+#Two Fountains
+get_attenuation(avg_inflow_15min_tf, avg_outflow_15min_tf, 3028, 3072)
+#DobA4
+get_attenuation(avg_inflow_15min_da4, avg_outflow_15min_da4, 3018, 3062)
+#Marion-Dunn
+get_attenuation(avg_inflow_15min_md, avg_outflow_15min_md, 3028, 3072)
+#Mad City
+get_attenuation(avg_inflow_15min_mc, avg_outflow_15min_mc, 3028, 3072)
+#Owen
+get_attenuation(avg_inflow_15min_owen, avg_outflow_15min_owen, 3028, 3072)
+#DobA22
+get_attenuation(avg_inflow_15min_da22, avg_outflow_15min_da22, 3028, 3072)
+#Hospital
+get_attenuation(avg_inflow_15min_hos, avg_outflow_15min_hos, 3028, 3072)
+```
+
+Attenuation Noise 9/24 (small storm)
+```{r}
+#Garner
+get_attenuation(avg_inflow_gar_noise, avg_outflow_gar_noise, 39500, 39900)
+#DobA5
+get_attenuation(avg_inflow_da5_noise, avg_outflow_da5_noise, 20785, 21185)
+#Manitou
+get_attenuation(avg_inflow_man_noise, avg_outflow_man_noise, 39500, 39900)
+#Midtown
+get_attenuation(avg_inflow_mid_noise, avg_outflow_mid_noise, 13500, 13900)
+#Baxter
+get_attenuation(avg_inflow_bax_noise, avg_outflow_bax_noise, 39552, 39952)
+#DobA8
+get_attenuation(avg_inflow_da8_noise, avg_outflow_da8_noise, 39500, 39900)
+#Elver
+get_attenuation(avg_inflow_elver_noise, avg_outflow_elver_noise, 39500, 39900)
+#HP Church
+get_attenuation(avg_inflow_hp_noise, avg_outflow_hp_noise, 39500, 39800)
+#Door Creek
+get_attenuation(avg_inflow_dc_noise, avg_outflow_dc_noise, 39500, 39900)
+#Comm Ave
+get_attenuation(avg_inflow_ca_noise, avg_outflow_ca_noise, 39500, 39900)
+#Greentree
+get_attenuation(avg_inflow_gt_noise, avg_outflow_gt_noise, 39500, 39900)
+#DobA7
+get_attenuation(avg_inflow_da7_noise, avg_outflow_da7_noise, 39500, 39900)
+#Lot 60
+get_attenuation(avg_inflow_l60_noise, avg_outflow_l60_noise, 39500, 39900)
+#Two Fountains
+get_attenuation(avg_inflow_tf_noise, avg_outflow_tf_noise, 39500, 39900)
+#DobA4
+get_attenuation(avg_inflow_da4_noise, avg_outflow_da4_noise, 39500, 39900)
+#Marion-Dunn
+get_attenuation(avg_inflow_md_noise, avg_outflow_md_noise, 39500, 39900)
+#Mad City
+get_attenuation(avg_inflow_mc_noise, avg_outflow_mc_noise, 39500, 39900)
+#Owen
+get_attenuation(avg_inflow_owen_noise, avg_outflow_owen_noise, 39500, 39900)
+#DobA22
+get_attenuation(avg_inflow_da22_noise, avg_outflow_da22_noise, 39500, 39900)
+#Hospital
+get_attenuation(avg_inflow_hos_noise, avg_outflow_hos_noise, 39500, 39900)
+```
+
+Attenuation WL +0.5in 9/24 (small storm)
+```{r}
+#Garner
+get_attenuation(avg_inflow_gar_plus0.5, avg_outflow_gar_plus0.5, 39500, 39900)
+#DobA5
+get_attenuation(avg_inflow_da5_plus0.5, avg_outflow_da5_plus0.5, 20785, 21185)
+#Manitou
+get_attenuation(avg_inflow_man_plus0.5, avg_outflow_man_plus0.5, 39500, 39900)
+#Midtown
+get_attenuation(avg_inflow_mid_plus0.5, avg_outflow_mid_plus0.5, 13500, 13900)
+#Baxter
+get_attenuation(avg_inflow_bax_plus0.5, avg_outflow_bax_plus0.5, 39552, 39952)
+#DobA8
+get_attenuation(avg_inflow_da8_plus0.5, avg_outflow_da8_plus0.5, 39500, 39900)
+#Elver
+get_attenuation(avg_inflow_elver_plus0.5, avg_outflow_elver_plus0.5, 39500, 39900)
+#HP Church
+get_attenuation(avg_inflow_hp_plus0.5, avg_outflow_hp_plus0.5, 39500, 39800)
+#Door Creek
+get_attenuation(avg_inflow_dc_plus0.5, avg_outflow_dc_plus0.5, 39500, 39900)
+#Comm Ave
+get_attenuation(avg_inflow_ca_plus0.5, avg_outflow_ca_plus0.5, 39500, 39900)
+#Greentree
+get_attenuation(avg_inflow_gt_plus0.5, avg_outflow_gt_plus0.5, 39500, 39900)
+#DobA7
+get_attenuation(avg_inflow_da7_plus0.5, avg_outflow_da7_plus0.5, 39500, 39900)
+#Lot 60
+get_attenuation(avg_inflow_l60_plus0.5, avg_outflow_l60_plus0.5, 39500, 39900)
+#Two Fountains
+get_attenuation(avg_inflow_tf_plus0.5, avg_outflow_tf_plus0.5, 39500, 39900)
+#DobA4
+get_attenuation(avg_inflow_da4_plus0.5, avg_outflow_da4_plus0.5, 39500, 39900)
+#Marion-Dunn
+get_attenuation(avg_inflow_md_plus0.5, avg_outflow_md_plus0.5, 39500, 39900)
+#Mad City
+get_attenuation(avg_inflow_mc_plus0.5, avg_outflow_mc_plus0.5, 39500, 39900)
+#Owen
+get_attenuation(avg_inflow_owen_plus0.5, avg_outflow_owen_plus0.5, 39500, 39900)
+#DobA22
+get_attenuation(avg_inflow_da22_plus0.5, avg_outflow_da22_plus0.5, 39500, 39900)
+#Hospital
+get_attenuation(avg_inflow_hos_plus0.5, avg_outflow_hos_plus0.5, 39500, 39900)
+```
+
+Attenuation WL -0.5in 9/24 (small storm)
+```{r}
+#Garner
+get_attenuation(avg_inflow_gar_minus0.5, avg_outflow_gar_minus0.5, 39500, 39900)
+#DobA5
+get_attenuation(avg_inflow_da5_minus0.5, avg_outflow_da5_minus0.5, 20785, 21185)
+#Manitou
+get_attenuation(avg_inflow_man_minus0.5, avg_outflow_man_minus0.5, 39500, 39900)
+#Midtown
+get_attenuation(avg_inflow_mid_minus0.5, avg_outflow_mid_minus0.5, 13500, 13900)
+#Baxter
+get_attenuation(avg_inflow_bax_minus0.5, avg_outflow_bax_minus0.5, 39552, 39952)
+#DobA8
+get_attenuation(avg_inflow_da8_minus0.5, avg_outflow_da8_minus0.5, 39500, 39900)
+#Elver
+get_attenuation(avg_inflow_elver_minus0.5, avg_outflow_elver_minus0.5, 39500, 39900)
+#HP Church
+get_attenuation(avg_inflow_hp_minus0.5, avg_outflow_hp_minus0.5, 39500, 39800)
+#Door Creek
+get_attenuation(avg_inflow_dc_minus0.5, avg_outflow_dc_minus0.5, 39500, 39900)
+#Comm Ave
+get_attenuation(avg_inflow_ca_minus0.5, avg_outflow_ca_minus0.5, 39500, 39900)
+#Greentree
+get_attenuation(avg_inflow_gt_minus0.5, avg_outflow_gt_minus0.5, 39500, 39900)
+#DobA7
+get_attenuation(avg_inflow_da7_minus0.5, avg_outflow_da7_minus0.5, 39500, 39900)
+#Lot 60
+get_attenuation(avg_inflow_l60_minus0.5, avg_outflow_l60_minus0.5, 39500, 39900)
+#Two Fountains
+get_attenuation(avg_inflow_tf_minus0.5, avg_outflow_tf_minus0.5, 39500, 39900)
+#DobA4
+get_attenuation(avg_inflow_da4_minus0.5, avg_outflow_da4_minus0.5, 39500, 39900)
+#Marion-Dunn
+get_attenuation(avg_inflow_md_minus0.5, avg_outflow_md_minus0.5, 39500, 39900)
+#Mad City
+get_attenuation(avg_inflow_mc_minus0.5, avg_outflow_mc_minus0.5, 39500, 39900)
+#Owen
+get_attenuation(avg_inflow_owen_minus0.5, avg_outflow_owen_minus0.5, 39500, 39900)
+#DobA22
+get_attenuation(avg_inflow_da22_minus0.5, avg_outflow_da22_minus0.5, 39500, 39900)
+#Hospital
+get_attenuation(avg_inflow_hos_minus0.5, avg_outflow_hos_minus0.5, 39500, 39900)
+```
+
+Attenuation +1in 9/24 (small storm)
+```{r}
+#Garner
+get_attenuation(avg_inflow_gar_plus1, avg_outflow_gar_plus1, 39500, 39900)
+#DobA5
+get_attenuation(avg_inflow_da5_plus1, avg_outflow_da5_plus1, 20785, 21185)
+#Manitou
+get_attenuation(avg_inflow_man_plus1, avg_outflow_man_plus1, 39500, 39900)
+#Midtown
+get_attenuation(avg_inflow_mid_plus1, avg_outflow_mid_plus1, 13500, 13900)
+#Baxter
+get_attenuation(avg_inflow_bax_plus1, avg_outflow_bax_plus1, 39552, 39952)
+#DobA8
+get_attenuation(avg_inflow_da8_plus1, avg_outflow_da8_plus1, 39500, 39900)
+#Elver
+get_attenuation(avg_inflow_elver_plus1, avg_outflow_elver_plus1, 39500, 39900)
+#HP Church
+get_attenuation(avg_inflow_hp_plus1, avg_outflow_hp_plus1, 39500, 39800)
+#Door Creek
+get_attenuation(avg_inflow_dc_plus1, avg_outflow_dc_plus1, 39500, 39900)
+#Comm Ave
+get_attenuation(avg_inflow_ca_plus1, avg_outflow_ca_plus1, 39500, 39900)
+#Greentree
+get_attenuation(avg_inflow_gt_plus1, avg_outflow_gt_plus1, 39500, 39900)
+#DobA7
+get_attenuation(avg_inflow_da7_plus1, avg_outflow_da7_plus1, 39500, 39900)
+#Lot 60
+get_attenuation(avg_inflow_l60_plus1, avg_outflow_l60_plus1, 39500, 39900)
+#Two Fountains
+get_attenuation(avg_inflow_tf_plus1, avg_outflow_tf_plus1, 39500, 39900)
+#DobA4
+get_attenuation(avg_inflow_da4_plus1, avg_outflow_da4_plus1, 39500, 39900)
+#Marion-Dunn
+get_attenuation(avg_inflow_md_plus1, avg_outflow_md_plus1, 39500, 39900)
+#Mad City
+get_attenuation(avg_inflow_mc_plus1, avg_outflow_mc_plus1, 39500, 39900)
+#Owen
+get_attenuation(avg_inflow_owen_plus1, avg_outflow_owen_plus1, 39500, 39900)
+#DobA22
+get_attenuation(avg_inflow_da22_plus1, avg_outflow_da22_plus1, 39500, 39900)
+#Hospital
+get_attenuation(avg_inflow_hos_plus1, avg_outflow_hos_plus1, 39500, 39900)
+```
+
+Attenuation -1in 9/24 (small storm)
+```{r}
+#Garner
+get_attenuation(avg_inflow_gar_minus1, avg_outflow_gar_minus1, 39500, 39900)
+#DobA5
+get_attenuation(avg_inflow_da5_minus1, avg_outflow_da5_minus1, 20785, 21185)
+#Manitou
+get_attenuation(avg_inflow_man_minus1, avg_outflow_man_minus1, 39500, 39900)
+#Midtown
+get_attenuation(avg_inflow_mid_minus1, avg_outflow_mid_minus1, 13500, 13900)
+#Baxter
+get_attenuation(avg_inflow_bax_minus1, avg_outflow_bax_minus1, 39552, 39952)
+#DobA8
+get_attenuation(avg_inflow_da8_minus1, avg_outflow_da8_minus1, 39500, 39900)
+#Elver
+get_attenuation(avg_inflow_elver_minus1, avg_outflow_elver_minus1, 39500, 39900)
+#HP Church
+get_attenuation(avg_inflow_hp_minus1, avg_outflow_hp_minus1, 39500, 39800)
+#Door Creek
+get_attenuation(avg_inflow_dc_minus1, avg_outflow_dc_minus1, 39500, 39900)
+#Comm Ave
+get_attenuation(avg_inflow_ca_minus1, avg_outflow_ca_minus1, 39500, 39900)
+#Greentree
+get_attenuation(avg_inflow_gt_minus1, avg_outflow_gt_minus1, 39500, 39900)
+#DobA7
+get_attenuation(avg_inflow_da7_minus1, avg_outflow_da7_minus1, 39500, 39900)
+#Lot 60
+get_attenuation(avg_inflow_l60_minus1, avg_outflow_l60_minus1, 39500, 39900)
+#Two Fountains
+get_attenuation(avg_inflow_tf_minus1, avg_outflow_tf_minus1, 39500, 39900)
+#DobA4
+get_attenuation(avg_inflow_da4_minus1, avg_outflow_da4_minus1, 39500, 39900)
+#Marion-Dunn
+get_attenuation(avg_inflow_md_minus1, avg_outflow_md_minus1, 39500, 39900)
+#Mad City
+get_attenuation(avg_inflow_mc_minus1, avg_outflow_mc_minus1, 39500, 39900)
+#Owen
+get_attenuation(avg_inflow_owen_minus1, avg_outflow_owen_minus1, 39500, 39900)
+#DobA22
+get_attenuation(avg_inflow_da22_minus1, avg_outflow_da22_minus1, 39500, 39900)
+#Hospital
+get_attenuation(avg_inflow_hos_minus1, avg_outflow_hos_minus1, 39500, 39900)
+```
+
+```{r}
+plot(avg_inflow_raw_bax[39500:39900], type="l")
+lines(avg_outflow_raw_bax[39500:39900], col="red")
 ```
 

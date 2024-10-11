@@ -64,9 +64,13 @@ swmm_h2l1_outflow <- swmm_h2l1_df$Outflow.cfs
 
 #Atten Table Base
 atten_base_df <- read.csv("Atten_Results_Base.csv")
+atten_base_large_df <- read.csv("Atten_Results_Large_Storm_Base.csv")
+atten_base_small_df <- read.csv("Atten_Results_Small_Storm_Base.csv")
 
 #Atten Table Smoothed
 atten_smooth_df <- read.csv("Atten_Results_Smoothed.csv")
+atten_smooth_large_df <- read.csv("Atten_Results_Large_Storm_Smoothed.csv")
+atten_smooth_small_df <- read.csv("Atten_Results_Small_Storm_Smoothed.csv")
 
 ```
 
@@ -1617,7 +1621,7 @@ ggplot(plot_df, aes(x = x)) +
 ggsave("midtown_95ci.png")
 ```
 
-Plot Attenuation vs Error for Base Results
+Plot Attenuation vs Error for Base Results Medium Storm
 ```{r}
 typical_noise_base_lm <- lm(abs(atten_base_df$Typical.Noise.Error) ~ atten_base_df$Typical.Noise.Atten)
 plus1cm_base_lm <- lm(abs(atten_base_df$Plus.1cm.Error) ~ atten_base_df$Plus.1cm.Atten)
@@ -1663,7 +1667,7 @@ grid()
 legend("topright", inset = c(-0.45,0.1), legend = c("Typical Noise", "Plus 5cm", "Plus 1cm", "Minus 1cm", "Minus 5cm", "V-notch Weir", "Rectangular Weir", "Trapezoidal Weir", "Culvert"), col = c(colors_red[5], colors_blue[5], colors_blue[4], colors_blue[3], colors_blue[2], "black", "black", "black", "black"), pt.bg = c(colors_red[5], colors_blue[5], colors_blue[4], colors_blue[3], colors_blue[2], "black", "black", "black", "black"), pch = c(NA,NA,NA,NA,NA,25,15,18,16), lty = c(1,1,1,1,1,NA,NA,NA,NA), lwd = c(2,2,2,2,2,NA,NA,NA,NA), xpd=TRUE)
 ```
 
-Plot Attenuation vs Error for Smoothed Results
+Plot Attenuation vs Error for Smoothed Results Medium Storm
 ```{r}
 typical_noise_smooth_lm <- lm(abs(atten_smooth_df$Typical.Noise.Error) ~ atten_smooth_df$Typical.Noise.Atten)
 plus1cm_smooth_lm <- lm(abs(atten_smooth_df$Plus.1cm.Error) ~ atten_smooth_df$Plus.1cm.Atten)
@@ -1709,3 +1713,305 @@ grid()
 legend("topright", inset = c(-0.45,0.1), legend = c("Typical Noise", "Plus 5cm", "Plus 1cm", "Minus 1cm", "Minus 5cm", "V-notch Weir", "Rectangular Weir", "Trapezoidal Weir", "Culvert"), col = c(colors_red[5], colors_blue[5], colors_blue[4], colors_blue[3], colors_blue[2], "black", "black", "black", "black"), pt.bg = c(colors_red[5], colors_blue[5], colors_blue[4], colors_blue[3], colors_blue[2], "black", "black", "black", "black"), pch = c(NA,NA,NA,NA,NA,25,15,18,16), lty = c(1,1,1,1,1,NA,NA,NA,NA), lwd = c(2,2,2,2,2,NA,NA,NA,NA), xpd=TRUE)
 ```
 
+Plot Attenuation vs Error for Base Results Large Storm
+```{r}
+typical_noise_base_large_lm <- lm(abs(atten_base_large_df$Typical.Noise.Error) ~ atten_base_large_df$Typical.Noise.Atten)
+plus1cm_base_large_lm <- lm(abs(atten_base_large_df$Plus.1cm.Error) ~ atten_base_large_df$Plus.1cm.Atten)
+minus1cm_base_large_lm <- lm(abs(atten_base_large_df$Minus.1cm.Error) ~ atten_base_large_df$Minus.1cm.Atten)
+plus5cm_base_large_lm <- lm(abs(atten_base_large_df$Plus.5cm.Error) ~ atten_base_large_df$Plus.5cm.Atten)
+minus5cm_base_large_lm <- lm(abs(atten_base_large_df$Minus.5cm.Error) ~ atten_base_large_df$Minus.5cm.Atten)
+
+typical_noise_base_large_df <- data.frame(atten_base_large_df$Typical.Noise.Atten, atten_base_large_df$Typical.Noise.Error)
+typical_noise_base_large_sorted <- typical_noise_base_large_df[order(typical_noise_base_large_df$atten_base_large_df.Typical.Noise.Atten),]
+plus1cm_base_large_df <- data.frame(atten_base_large_df$Plus.1cm.Atten, atten_base_large_df$Plus.1cm.Error)
+plus1cm_base_large_sorted <- plus1cm_base_large_df[order(plus1cm_base_large_df$atten_base_large_df.Plus.1cm.Atten),]
+minus1cm_base_large_df <- data.frame(atten_base_large_df$Minus.1cm.Atten, atten_base_large_df$Minus.1cm.Error)
+minus1cm_base_large_sorted <- minus1cm_base_large_df[order(minus1cm_base_large_df$atten_base_large_df.Minus.1cm.Atten),]
+plus5cm_base_large_df <- data.frame(atten_base_large_df$Plus.5cm.Atten, atten_base_large_df$Plus.5cm.Error)
+plus5cm_base_large_sorted <- plus5cm_base_large_df[order(plus5cm_base_large_df$atten_base_large_df.Plus.5cm.Atten),]
+minus5cm_base_large_df <- data.frame(atten_base_large_df$Minus.5cm.Atten, atten_base_large_df$Minus.5cm.Error)
+minus5cm_base_large_sorted <- minus5cm_base_large_df[order(minus5cm_base_large_df$atten_base_large_df.Minus.5cm.Atten),]
+
+shape_map <- c("V-notch" = 25, #inverted triange
+               "Rectangular" = 15, #rectangle
+               "Trapezoidal" = 18, #diamond
+               "Culvert" =16) #circle
+
+# Adjust margins: increase the right margin (fourth value) to make space for the legend
+par(mar = c(5, 4, 4, 10) + 0.1)  # c(bottom, left, top, right)
+
+plot(atten_base_large_df$Typical.Noise.Atten, abs(atten_base_large_df$Typical.Noise.Error), pch = shape_map[atten_base_large_df$Outlet.Type], col=colors_red[5], bg=colors_red[5], xlab="Attenuation (% Reduction in Inflow)", ylab="Error (% Difference from Base)", ylim=c(0, max(abs(atten_base_large_df$Minus.5cm.Error))))
+abline(typical_noise_base_large_lm, col=colors_red[5])
+#lines(typical_noise_base_large_sorted$atten_base_large_df.Typical.Noise.Atten, abs(typical_noise_base_large_sorted$atten_base_large_df.Typical.Noise.Error), lty=3, col=colors_red[5])
+points(atten_base_large_df$Plus.1cm.Atten, abs(atten_base_large_df$Plus.1cm.Error), pch = shape_map[atten_base_large_df$Outlet.Type], col=colors_blue[4], bg=colors_blue[4])
+abline(plus1cm_base_large_lm, col=colors_blue[4])
+#lines(plus1cm_base_large_sorted$atten_base_large_df.Plus.1cm.Atten, abs(plus1cm_base_large_sorted$atten_base_large_df.Plus.1cm.Error), lty=3, col=colors_blue[4])
+points(atten_base_large_df$Minus.1cm.Atten, abs(atten_base_large_df$Minus.1cm.Error), pch = shape_map[atten_base_large_df$Outlet.Type], col=colors_blue[3], bg=colors_blue[3])
+abline(minus1cm_base_large_lm, col=colors_blue[3])
+#lines(minus1cm_base_large_sorted$atten_base_large_df.Minus.1cm.Atten, abs(minus1cm_base_large_sorted$atten_base_large_df.Minus.1cm.Error), lty=3, col=colors_blue[3])
+points(atten_base_large_df$Plus.5cm.Atten, abs(atten_base_large_df$Plus.5cm.Error), pch = shape_map[atten_base_large_df$Outlet.Type], col=colors_blue[5], bg=colors_blue[5])
+abline(plus5cm_base_large_lm, col=colors_blue[5])
+#lines(plus5cm_base_large_sorted$atten_base_large_df.Plus.5cm.Atten, abs(plus5cm_base_large_sorted$atten_base_large_df.Plus.5cm.Error), lty=3, col=colors_blue[5])
+points(atten_base_large_df$Minus.5cm.Atten, abs(atten_base_large_df$Minus.5cm.Error), pch = shape_map[atten_base_large_df$Outlet.Type], col=colors_blue[2], bg=colors_blue[2])
+abline(minus5cm_base_large_lm, col=colors_blue[2])
+#lines(minus5cm_base_large_sorted$atten_base_large_df.Minus.5cm.Atten, abs(minus5cm_base_large_sorted$atten_base_large_df.Minus.5cm.Error), lty=3, col=colors_blue[2])
+grid()
+legend("topright", inset = c(-0.45,0.1), legend = c("Typical Noise", "Plus 5cm", "Plus 1cm", "Minus 1cm", "Minus 5cm", "V-notch Weir", "Rectangular Weir", "Trapezoidal Weir", "Culvert"), col = c(colors_red[5], colors_blue[5], colors_blue[4], colors_blue[3], colors_blue[2], "black", "black", "black", "black"), pt.bg = c(colors_red[5], colors_blue[5], colors_blue[4], colors_blue[3], colors_blue[2], "black", "black", "black", "black"), pch = c(NA,NA,NA,NA,NA,25,15,18,16), lty = c(1,1,1,1,1,NA,NA,NA,NA), lwd = c(2,2,2,2,2,NA,NA,NA,NA), xpd=TRUE)
+```
+
+Plot Attenuation vs Error for Smoothed Results Large Storm
+```{r}
+typical_noise_smooth_large_lm <- lm(abs(atten_smooth_large_df$Typical.Noise.Error) ~ atten_smooth_large_df$Typical.Noise.Atten)
+plus1cm_smooth_large_lm <- lm(abs(atten_smooth_large_df$Plus.1cm.Error) ~ atten_smooth_large_df$Plus.1cm.Atten)
+minus1cm_smooth_large_lm <- lm(abs(atten_smooth_large_df$Minus.1cm.Error) ~ atten_smooth_large_df$Minus.1cm.Atten)
+plus5cm_smooth_large_lm <- lm(abs(atten_smooth_large_df$Plus.5cm.Error[2:19]) ~ atten_smooth_large_df$Plus.5cm.Atten[2:19])
+minus5cm_smooth_large_lm <- lm(abs(atten_smooth_large_df$Minus.5cm.Error[2:19]) ~ atten_smooth_large_df$Minus.5cm.Atten[2:19])
+
+typical_noise_smooth_large_df <- data.frame(atten_smooth_large_df$Typical.Noise.Atten, atten_smooth_large_df$Typical.Noise.Error)
+typical_noise_smooth_large_sorted <- typical_noise_smooth_large_df[order(typical_noise_smooth_large_df$atten_smooth_large_df.Typical.Noise.Atten),]
+plus1cm_smooth_large_df <- data.frame(atten_smooth_large_df$Plus.1cm.Atten, atten_smooth_large_df$Plus.1cm.Error)
+plus1cm_smooth_large_sorted <- plus1cm_smooth_large_df[order(plus1cm_smooth_large_df$atten_smooth_large_df.Plus.1cm.Atten),]
+minus1cm_smooth_large_df <- data.frame(atten_smooth_large_df$Minus.1cm.Atten, atten_smooth_large_df$Minus.1cm.Error)
+minus1cm_smooth_large_sorted <- minus1cm_smooth_large_df[order(minus1cm_smooth_large_df$atten_smooth_large_df.Minus.1cm.Atten),]
+plus5cm_smooth_large_df <- data.frame(atten_smooth_large_df$Plus.5cm.Atten[2:19], atten_smooth_large_df$Plus.5cm.Error[2:19])
+plus5cm_smooth_large_sorted <- plus5cm_smooth_large_df[order(plus5cm_smooth_large_df$atten_smooth_large_df.Plus.5cm.Atten),]
+minus5cm_smooth_large_df <- data.frame(atten_smooth_large_df$Minus.5cm.Atten[2:19], atten_smooth_large_df$Minus.5cm.Error[2:19])
+minus5cm_smooth_large_sorted <- minus5cm_smooth_large_df[order(minus5cm_smooth_large_df$atten_smooth_large_df.Minus.5cm.Atten),]
+
+shape_map <- c("V-notch" = 25, #inverted triange
+               "Rectangular" = 15, #rectangle
+               "Trapezoidal" = 18, #diamond
+               "Culvert" =16) #circle
+
+# Adjust margins: increase the right margin (fourth value) to make space for the legend
+par(mar = c(5, 4, 4, 10) + 0.1)  # c(bottom, left, top, right)
+
+plot(atten_smooth_large_df$Typical.Noise.Atten, abs(atten_smooth_large_df$Typical.Noise.Error), pch = shape_map[atten_smooth_large_df$Outlet.Type], col=colors_red[5], bg=colors_red[5], xlab="Attenuation (% Reduction in Inflow)", ylab="Error (% Difference from Smoothed Base)", ylim=c(0, max(abs(atten_smooth_large_df$Minus.5cm.Error))))
+abline(typical_noise_smooth_large_lm, col=colors_red[5])
+#lines(typical_noise_smooth_large_sorted$atten_smooth_large_df.Typical.Noise.Atten, abs(typical_noise_smooth_large_sorted$atten_smooth_large_df.Typical.Noise.Error), lty=3, col=colors_red[5])
+points(atten_smooth_large_df$Plus.1cm.Atten, abs(atten_smooth_large_df$Plus.1cm.Error), pch = shape_map[atten_smooth_large_df$Outlet.Type], col=colors_blue[4], bg=colors_blue[4])
+abline(plus1cm_smooth_large_lm, col=colors_blue[4])
+#lines(plus1cm_smooth_large_sorted$atten_smooth_large_df.Plus.1cm.Atten, abs(plus1cm_smooth_large_sorted$atten_smooth_large_df.Plus.1cm.Error), lty=3, col=colors_blue[4])
+points(atten_smooth_large_df$Minus.1cm.Atten, abs(atten_smooth_large_df$Minus.1cm.Error), pch = shape_map[atten_smooth_large_df$Outlet.Type], col=colors_blue[3], bg=colors_blue[3])
+abline(minus1cm_smooth_large_lm, col=colors_blue[3])
+#lines(minus1cm_smooth_large_sorted$atten_smooth_large_df.Minus.1cm.Atten, abs(minus1cm_smooth_large_sorted$atten_smooth_large_df.Minus.1cm.Error), lty=3, col=colors_blue[3])
+points(atten_smooth_large_df$Plus.5cm.Atten[2:19], abs(atten_smooth_large_df$Plus.5cm.Error[2:19]), pch = shape_map[atten_smooth_large_df$Outlet.Type], col=colors_blue[5], bg=colors_blue[5])
+abline(plus5cm_smooth_large_lm, col=colors_blue[5])
+#lines(plus5cm_smooth_large_sorted$atten_smooth_large_df.Plus.5cm.Atten, abs(plus5cm_smooth_large_sorted$atten_smooth_large_df.Plus.5cm.Error), lty=3, col=colors_blue[5])
+points(atten_smooth_large_df$Minus.5cm.Atten[2:19], abs(atten_smooth_large_df$Minus.5cm.Error[2:19]), pch = shape_map[atten_smooth_large_df$Outlet.Type], col=colors_blue[2], bg=colors_blue[2])
+abline(minus5cm_smooth_large_lm, col=colors_blue[2])
+#lines(minus5cm_smooth_large_sorted$atten_smooth_large_df.Minus.5cm.Atten, abs(minus5cm_smooth_large_sorted$atten_smooth_large_df.Minus.5cm.Error), lty=3, col=colors_blue[2])
+grid()
+legend("topright", inset = c(-0.45,0.1), legend = c("Typical Noise", "Plus 5cm", "Plus 1cm", "Minus 1cm", "Minus 5cm", "V-notch Weir", "Rectangular Weir", "Trapezoidal Weir", "Culvert"), col = c(colors_red[5], colors_blue[5], colors_blue[4], colors_blue[3], colors_blue[2], "black", "black", "black", "black"), pt.bg = c(colors_red[5], colors_blue[5], colors_blue[4], colors_blue[3], colors_blue[2], "black", "black", "black", "black"), pch = c(NA,NA,NA,NA,NA,25,15,18,16), lty = c(1,1,1,1,1,NA,NA,NA,NA), lwd = c(2,2,2,2,2,NA,NA,NA,NA), xpd=TRUE)
+```
+
+Plot Attenuation vs Error for Base Results Small Storm
+```{r}
+typical_noise_base_small_lm <- lm(abs(atten_base_small_df$Typical.Noise.Error) ~ atten_base_small_df$Typical.Noise.Atten)
+plus1cm_base_small_lm <- lm(abs(atten_base_small_df$Plus.1cm.Error) ~ atten_base_small_df$Plus.1cm.Atten)
+minus1cm_base_small_lm <- lm(abs(atten_base_small_df$Minus.1cm.Error) ~ atten_base_small_df$Minus.1cm.Atten)
+plus5cm_base_small_lm <- lm(abs(atten_base_small_df$Plus.5cm.Error) ~ atten_base_small_df$Plus.5cm.Atten)
+minus5cm_base_small_lm <- lm(abs(atten_base_small_df$Minus.5cm.Error) ~ atten_base_small_df$Minus.5cm.Atten)
+
+typical_noise_base_small_df <- data.frame(atten_base_small_df$Typical.Noise.Atten, atten_base_small_df$Typical.Noise.Error)
+typical_noise_base_small_sorted <- typical_noise_base_small_df[order(typical_noise_base_small_df$atten_base_small_df.Typical.Noise.Atten),]
+plus1cm_base_small_df <- data.frame(atten_base_small_df$Plus.1cm.Atten, atten_base_small_df$Plus.1cm.Error)
+plus1cm_base_small_sorted <- plus1cm_base_small_df[order(plus1cm_base_small_df$atten_base_small_df.Plus.1cm.Atten),]
+minus1cm_base_small_df <- data.frame(atten_base_small_df$Minus.1cm.Atten, atten_base_small_df$Minus.1cm.Error)
+minus1cm_base_small_sorted <- minus1cm_base_small_df[order(minus1cm_base_small_df$atten_base_small_df.Minus.1cm.Atten),]
+plus5cm_base_small_df <- data.frame(atten_base_small_df$Plus.5cm.Atten, atten_base_small_df$Plus.5cm.Error)
+plus5cm_base_small_sorted <- plus5cm_base_small_df[order(plus5cm_base_small_df$atten_base_small_df.Plus.5cm.Atten),]
+minus5cm_base_small_df <- data.frame(atten_base_small_df$Minus.5cm.Atten, atten_base_small_df$Minus.5cm.Error)
+minus5cm_base_small_sorted <- minus5cm_base_small_df[order(minus5cm_base_small_df$atten_base_small_df.Minus.5cm.Atten),]
+
+shape_map <- c("V-notch" = 25, #inverted triange
+               "Rectangular" = 15, #rectangle
+               "Trapezoidal" = 18, #diamond
+               "Culvert" =16) #circle
+
+# Adjust margins: increase the right margin (fourth value) to make space for the legend
+par(mar = c(5, 4, 4, 10) + 0.1)  # c(bottom, left, top, right)
+
+plot(atten_base_small_df$Typical.Noise.Atten, abs(atten_base_small_df$Typical.Noise.Error), pch = shape_map[atten_base_small_df$Outlet.Type], col=colors_red[5], bg=colors_red[5], xlab="Attenuation (% Reduction in Inflow)", ylab="Error (% Difference from Base)", ylim=c(0, max(abs(atten_base_small_df$Minus.5cm.Error))))
+abline(typical_noise_base_small_lm, col=colors_red[5])
+#lines(typical_noise_base_small_sorted$atten_base_small_df.Typical.Noise.Atten, abs(typical_noise_base_small_sorted$atten_base_small_df.Typical.Noise.Error), lty=3, col=colors_red[5])
+points(atten_base_small_df$Plus.1cm.Atten, abs(atten_base_small_df$Plus.1cm.Error), pch = shape_map[atten_base_small_df$Outlet.Type], col=colors_blue[4], bg=colors_blue[4])
+abline(plus1cm_base_small_lm, col=colors_blue[4])
+#lines(plus1cm_base_small_sorted$atten_base_small_df.Plus.1cm.Atten, abs(plus1cm_base_small_sorted$atten_base_small_df.Plus.1cm.Error), lty=3, col=colors_blue[4])
+points(atten_base_small_df$Minus.1cm.Atten, abs(atten_base_small_df$Minus.1cm.Error), pch = shape_map[atten_base_small_df$Outlet.Type], col=colors_blue[3], bg=colors_blue[3])
+abline(minus1cm_base_small_lm, col=colors_blue[3])
+#lines(minus1cm_base_small_sorted$atten_base_small_df.Minus.1cm.Atten, abs(minus1cm_base_small_sorted$atten_base_small_df.Minus.1cm.Error), lty=3, col=colors_blue[3])
+points(atten_base_small_df$Plus.5cm.Atten, abs(atten_base_small_df$Plus.5cm.Error), pch = shape_map[atten_base_small_df$Outlet.Type], col=colors_blue[5], bg=colors_blue[5])
+abline(plus5cm_base_small_lm, col=colors_blue[5])
+#lines(plus5cm_base_small_sorted$atten_base_small_df.Plus.5cm.Atten, abs(plus5cm_base_small_sorted$atten_base_small_df.Plus.5cm.Error), lty=3, col=colors_blue[5])
+points(atten_base_small_df$Minus.5cm.Atten, abs(atten_base_small_df$Minus.5cm.Error), pch = shape_map[atten_base_small_df$Outlet.Type], col=colors_blue[2], bg=colors_blue[2])
+abline(minus5cm_base_small_lm, col=colors_blue[2])
+#lines(minus5cm_base_small_sorted$atten_base_small_df.Minus.5cm.Atten, abs(minus5cm_base_small_sorted$atten_base_small_df.Minus.5cm.Error), lty=3, col=colors_blue[2])
+grid()
+legend("topright", inset = c(-0.45,0.1), legend = c("Typical Noise", "Plus 5cm", "Plus 1cm", "Minus 1cm", "Minus 5cm", "V-notch Weir", "Rectangular Weir", "Trapezoidal Weir", "Culvert"), col = c(colors_red[5], colors_blue[5], colors_blue[4], colors_blue[3], colors_blue[2], "black", "black", "black", "black"), pt.bg = c(colors_red[5], colors_blue[5], colors_blue[4], colors_blue[3], colors_blue[2], "black", "black", "black", "black"), pch = c(NA,NA,NA,NA,NA,25,15,18,16), lty = c(1,1,1,1,1,NA,NA,NA,NA), lwd = c(2,2,2,2,2,NA,NA,NA,NA), xpd=TRUE)
+```
+
+Plot Attenuation vs Error for Smoothed Results Small Storm
+```{r}
+typical_noise_smooth_small_lm <- lm(abs(atten_smooth_small_df$Typical.Noise.Error) ~ atten_smooth_small_df$Typical.Noise.Atten)
+plus1cm_smooth_small_lm <- lm(abs(atten_smooth_small_df$Plus.1cm.Error) ~ atten_smooth_small_df$Plus.1cm.Atten)
+minus1cm_smooth_small_lm <- lm(abs(atten_smooth_small_df$Minus.1cm.Error) ~ atten_smooth_small_df$Minus.1cm.Atten)
+plus5cm_smooth_small_lm <- lm(abs(atten_smooth_small_df$Plus.5cm.Error[2:19]) ~ atten_smooth_small_df$Plus.5cm.Atten[2:19])
+minus5cm_smooth_small_lm <- lm(abs(atten_smooth_small_df$Minus.5cm.Error[2:19]) ~ atten_smooth_small_df$Minus.5cm.Atten[2:19])
+
+typical_noise_smooth_small_df <- data.frame(atten_smooth_small_df$Typical.Noise.Atten, atten_smooth_small_df$Typical.Noise.Error)
+typical_noise_smooth_small_sorted <- typical_noise_smooth_small_df[order(typical_noise_smooth_small_df$atten_smooth_small_df.Typical.Noise.Atten),]
+plus1cm_smooth_small_df <- data.frame(atten_smooth_small_df$Plus.1cm.Atten, atten_smooth_small_df$Plus.1cm.Error)
+plus1cm_smooth_small_sorted <- plus1cm_smooth_small_df[order(plus1cm_smooth_small_df$atten_smooth_small_df.Plus.1cm.Atten),]
+minus1cm_smooth_small_df <- data.frame(atten_smooth_small_df$Minus.1cm.Atten, atten_smooth_small_df$Minus.1cm.Error)
+minus1cm_smooth_small_sorted <- minus1cm_smooth_small_df[order(minus1cm_smooth_small_df$atten_smooth_small_df.Minus.1cm.Atten),]
+plus5cm_smooth_small_df <- data.frame(atten_smooth_small_df$Plus.5cm.Atten[2:19], atten_smooth_small_df$Plus.5cm.Error[2:19])
+plus5cm_smooth_small_sorted <- plus5cm_smooth_small_df[order(plus5cm_smooth_small_df$atten_smooth_small_df.Plus.5cm.Atten),]
+minus5cm_smooth_small_df <- data.frame(atten_smooth_small_df$Minus.5cm.Atten[2:19], atten_smooth_small_df$Minus.5cm.Error[2:19])
+minus5cm_smooth_small_sorted <- minus5cm_smooth_small_df[order(minus5cm_smooth_small_df$atten_smooth_small_df.Minus.5cm.Atten),]
+
+shape_map <- c("V-notch" = 25, #inverted triange
+               "Rectangular" = 15, #rectangle
+               "Trapezoidal" = 18, #diamond
+               "Culvert" =16) #circle
+
+# Adjust margins: increase the right margin (fourth value) to make space for the legend
+par(mar = c(5, 4, 4, 10) + 0.1)  # c(bottom, left, top, right)
+
+plot(atten_smooth_small_df$Typical.Noise.Atten, abs(atten_smooth_small_df$Typical.Noise.Error), pch = shape_map[atten_smooth_small_df$Outlet.Type], col=colors_red[5], bg=colors_red[5], xlab="Attenuation (% Reduction in Inflow)", ylab="Error (% Difference from Smoothed Base)", ylim=c(0, max(abs(atten_smooth_small_df$Minus.5cm.Error))))
+abline(typical_noise_smooth_small_lm, col=colors_red[5])
+#lines(typical_noise_smooth_small_sorted$atten_smooth_small_df.Typical.Noise.Atten, abs(typical_noise_smooth_small_sorted$atten_smooth_small_df.Typical.Noise.Error), lty=3, col=colors_red[5])
+points(atten_smooth_small_df$Plus.1cm.Atten, abs(atten_smooth_small_df$Plus.1cm.Error), pch = shape_map[atten_smooth_small_df$Outlet.Type], col=colors_blue[4], bg=colors_blue[4])
+abline(plus1cm_smooth_small_lm, col=colors_blue[4])
+#lines(plus1cm_smooth_small_sorted$atten_smooth_small_df.Plus.1cm.Atten, abs(plus1cm_smooth_small_sorted$atten_smooth_small_df.Plus.1cm.Error), lty=3, col=colors_blue[4])
+points(atten_smooth_small_df$Minus.1cm.Atten, abs(atten_smooth_small_df$Minus.1cm.Error), pch = shape_map[atten_smooth_small_df$Outlet.Type], col=colors_blue[3], bg=colors_blue[3])
+abline(minus1cm_smooth_small_lm, col=colors_blue[3])
+#lines(minus1cm_smooth_small_sorted$atten_smooth_small_df.Minus.1cm.Atten, abs(minus1cm_smooth_small_sorted$atten_smooth_small_df.Minus.1cm.Error), lty=3, col=colors_blue[3])
+points(atten_smooth_small_df$Plus.5cm.Atten[2:19], abs(atten_smooth_small_df$Plus.5cm.Error[2:19]), pch = shape_map[atten_smooth_small_df$Outlet.Type], col=colors_blue[5], bg=colors_blue[5])
+abline(plus5cm_smooth_small_lm, col=colors_blue[5])
+#lines(plus5cm_smooth_small_sorted$atten_smooth_small_df.Plus.5cm.Atten, abs(plus5cm_smooth_small_sorted$atten_smooth_small_df.Plus.5cm.Error), lty=3, col=colors_blue[5])
+points(atten_smooth_small_df$Minus.5cm.Atten[2:19], abs(atten_smooth_small_df$Minus.5cm.Error[2:19]), pch = shape_map[atten_smooth_small_df$Outlet.Type], col=colors_blue[2], bg=colors_blue[2])
+abline(minus5cm_smooth_small_lm, col=colors_blue[2])
+#lines(minus5cm_smooth_small_sorted$atten_smooth_small_df.Minus.5cm.Atten, abs(minus5cm_smooth_small_sorted$atten_smooth_small_df.Minus.5cm.Error), lty=3, col=colors_blue[2])
+grid()
+legend("topright", inset = c(-0.45,0.1), legend = c("Typical Noise", "Plus 5cm", "Plus 1cm", "Minus 1cm", "Minus 5cm", "V-notch Weir", "Rectangular Weir", "Trapezoidal Weir", "Culvert"), col = c(colors_red[5], colors_blue[5], colors_blue[4], colors_blue[3], colors_blue[2], "black", "black", "black", "black"), pt.bg = c(colors_red[5], colors_blue[5], colors_blue[4], colors_blue[3], colors_blue[2], "black", "black", "black", "black"), pch = c(NA,NA,NA,NA,NA,25,15,18,16), lty = c(1,1,1,1,1,NA,NA,NA,NA), lwd = c(2,2,2,2,2,NA,NA,NA,NA), xpd=TRUE)
+```
+Plot Bounce vs Noise Error
+```{r}
+typical_noise_base_lm <- lm(abs(atten_base_df$Typical.Noise.Error) ~ atten_base_df$Bounce)
+typical_noise_smooth_lm <- lm(abs(atten_smooth_df$Typical.Noise.Error) ~ atten_smooth_df$Bounce)
+typical_noise_base_large_lm <- lm(abs(atten_base_large_df$Typical.Noise.Error) ~ atten_base_large_df$Bounce)
+typical_noise_base_small_lm <- lm(abs(atten_base_small_df$Typical.Noise.Error) ~ atten_base_small_df$Bounce)
+typical_noise_smooth_large_lm <- lm(abs(atten_smooth_large_df$Typical.Noise.Error) ~ atten_smooth_large_df$Bounce)
+typical_noise_smooth_small_lm <- lm(abs(atten_smooth_small_df$Typical.Noise.Error) ~ atten_smooth_small_df$Bounce)
+
+plot(atten_base_df$Bounce, abs(atten_base_df$Typical.Noise.Error), pch=19, ylim=c(0,100))
+points(atten_smooth_df$Bounce, abs(atten_smooth_df$Typical.Noise.Error), pch=19, col="red")
+points(atten_base_large_df$Bounce, abs(atten_base_large_df$Typical.Noise.Error), pch=19, col="blue")
+points(atten_base_small_df$Bounce, abs(atten_base_small_df$Typical.Noise.Error), pch=19, col="green")
+points(atten_smooth_large_df$Bounce, abs(atten_smooth_large_df$Typical.Noise.Error), pch=19, col="gold")
+points(atten_smooth_small_df$Bounce, abs(atten_smooth_small_df$Typical.Noise.Error), pch=19, col="purple")
+
+abline(typical_noise_base_lm, col="black")
+abline(typical_noise_smooth_lm, col="red")
+abline(typical_noise_base_large_lm, col="blue")
+abline(typical_noise_base_small_lm, col="green")
+abline(typical_noise_smooth_large_lm, col="gold")
+abline(typical_noise_smooth_small_lm, col="purple")
+```
+Plot Bounce vs +1cm Error
+```{r}
+typical_plus1_base_lm <- lm(abs(atten_base_df$Plus.1cm.Error) ~ atten_base_df$Bounce)
+typical_plus1_smooth_lm <- lm(abs(atten_smooth_df$Plus.1cm.Error) ~ atten_smooth_df$Bounce)
+typical_plus1_base_large_lm <- lm(abs(atten_base_large_df$Plus.1cm.Error) ~ atten_base_large_df$Bounce)
+typical_plus1_base_small_lm <- lm(abs(atten_base_small_df$Plus.1cm.Error) ~ atten_base_small_df$Bounce)
+typical_plus1_smooth_large_lm <- lm(abs(atten_smooth_large_df$Plus.1cm.Error) ~ atten_smooth_large_df$Bounce)
+typical_plus1_smooth_small_lm <- lm(abs(atten_smooth_small_df$Plus.1cm.Error) ~ atten_smooth_small_df$Bounce)
+
+plot(atten_base_df$Bounce, abs(atten_base_df$Plus.1cm.Error), pch=19, ylim=c(0,30))
+points(atten_smooth_df$Bounce, abs(atten_smooth_df$Plus.1cm.Error), pch=19, col="red")
+points(atten_base_large_df$Bounce, abs(atten_base_large_df$Plus.1cm.Error), pch=19, col="blue")
+points(atten_base_small_df$Bounce, abs(atten_base_small_df$Plus.1cm.Error), pch=19, col="green")
+points(atten_smooth_large_df$Bounce, abs(atten_smooth_large_df$Plus.1cm.Error), pch=19, col="gold")
+points(atten_smooth_small_df$Bounce, abs(atten_smooth_small_df$Plus.1cm.Error), pch=19, col="purple")
+
+abline(typical_plus1_base_lm, col="black")
+abline(typical_plus1_smooth_lm, col="red")
+abline(typical_plus1_base_large_lm, col="blue")
+abline(typical_plus1_base_small_lm, col="green")
+abline(typical_plus1_smooth_large_lm, col="gold")
+abline(typical_plus1_smooth_small_lm, col="purple")
+
+```
+
+Plot Bounce vs -1cm Error
+```{r}
+typical_minus1_base_lm <- lm(abs(atten_base_df$Minus.1cm.Error) ~ atten_base_df$Bounce)
+typical_minus1_smooth_lm <- lm(abs(atten_smooth_df$Minus.1cm.Error) ~ atten_smooth_df$Bounce)
+typical_minus1_base_large_lm <- lm(abs(atten_base_large_df$Minus.1cm.Error) ~ atten_base_large_df$Bounce)
+typical_minus1_base_small_lm <- lm(abs(atten_base_small_df$Minus.1cm.Error) ~ atten_base_small_df$Bounce)
+typical_minus1_smooth_large_lm <- lm(abs(atten_smooth_large_df$Minus.1cm.Error) ~ atten_smooth_large_df$Bounce)
+typical_minus1_smooth_small_lm <- lm(abs(atten_smooth_small_df$Minus.1cm.Error) ~ atten_smooth_small_df$Bounce)
+
+plot(atten_base_df$Bounce, abs(atten_base_df$Minus.1cm.Error), pch=19, ylim=c(0,50))
+points(atten_smooth_df$Bounce, abs(atten_smooth_df$Minus.1cm.Error), pch=19, col="red")
+points(atten_base_large_df$Bounce, abs(atten_base_large_df$Minus.1cm.Error), pch=19, col="blue")
+points(atten_base_small_df$Bounce, abs(atten_base_small_df$Minus.1cm.Error), pch=19, col="green")
+points(atten_smooth_large_df$Bounce, abs(atten_smooth_large_df$Minus.1cm.Error), pch=19, col="gold")
+points(atten_smooth_small_df$Bounce, abs(atten_smooth_small_df$Minus.1cm.Error), pch=19, col="purple")
+
+abline(typical_minus1_base_lm, col="black")
+abline(typical_minus1_smooth_lm, col="red")
+abline(typical_minus1_base_large_lm, col="blue")
+abline(typical_minus1_base_small_lm, col="green")
+abline(typical_minus1_smooth_large_lm, col="gold")
+abline(typical_minus1_smooth_small_lm, col="purple")
+```
+
+Plot Bounce vs +5cm Error
+```{r}
+typical_plus5_base_lm <- lm(abs(atten_base_df$Plus.5cm.Error) ~ atten_base_df$Bounce)
+typical_plus5_smooth_lm <- lm(abs(atten_smooth_df$Plus.5cm.Error) ~ atten_smooth_df$Bounce)
+typical_plus5_base_large_lm <- lm(abs(atten_base_large_df$Plus.5cm.Error) ~ atten_base_large_df$Bounce)
+typical_plus5_base_small_lm <- lm(abs(atten_base_small_df$Plus.5cm.Error) ~ atten_base_small_df$Bounce)
+typical_plus5_smooth_large_lm <- lm(abs(atten_smooth_large_df$Plus.5cm.Error) ~ atten_smooth_large_df$Bounce)
+typical_plus5_smooth_small_lm <- lm(abs(atten_smooth_small_df$Plus.5cm.Error) ~ atten_smooth_small_df$Bounce)
+
+plot(atten_base_df$Bounce, abs(atten_base_df$Plus.5cm.Error), pch=19, ylim=c(0,60))
+points(atten_smooth_df$Bounce, abs(atten_smooth_df$Plus.5cm.Error), pch=19, col="red")
+points(atten_base_large_df$Bounce, abs(atten_base_large_df$Plus.5cm.Error), pch=19, col="blue")
+points(atten_base_small_df$Bounce, abs(atten_base_small_df$Plus.5cm.Error), pch=19, col="green")
+points(atten_smooth_large_df$Bounce, abs(atten_smooth_large_df$Plus.5cm.Error), pch=19, col="gold")
+points(atten_smooth_small_df$Bounce, abs(atten_smooth_small_df$Plus.5cm.Error), pch=19, col="purple")
+
+abline(typical_plus5_base_lm, col="black")
+abline(typical_plus5_smooth_lm, col="red")
+abline(typical_plus5_base_large_lm, col="blue")
+abline(typical_plus5_base_small_lm, col="green")
+abline(typical_plus5_smooth_large_lm, col="gold")
+abline(typical_plus5_smooth_small_lm, col="purple")
+```
+
+Plot Bounce vs -5cm Error
+```{r}
+typical_minus5_base_lm <- lm(abs(atten_base_df$Minus.5cm.Error) ~ atten_base_df$Bounce)
+typical_minus5_smooth_lm <- lm(abs(atten_smooth_df$Minus.5cm.Error) ~ atten_smooth_df$Bounce)
+typical_minus5_base_large_lm <- lm(abs(atten_base_large_df$Minus.5cm.Error) ~ atten_base_large_df$Bounce)
+typical_minus5_base_small_lm <- lm(abs(atten_base_small_df$Minus.5cm.Error) ~ atten_base_small_df$Bounce)
+typical_minus5_smooth_large_lm <- lm(abs(atten_smooth_large_df$Minus.5cm.Error) ~ atten_smooth_large_df$Bounce)
+typical_minus5_smooth_small_lm <- lm(abs(atten_smooth_small_df$Minus.5cm.Error) ~ atten_smooth_small_df$Bounce)
+
+plot(atten_base_df$Bounce, abs(atten_base_df$Minus.5cm.Error), pch=19, ylim=c(0,100))
+points(atten_smooth_df$Bounce, abs(atten_smooth_df$Minus.5cm.Error), pch=19, col="red")
+points(atten_base_large_df$Bounce, abs(atten_base_large_df$Minus.5cm.Error), pch=19, col="blue")
+points(atten_base_small_df$Bounce, abs(atten_base_small_df$Minus.5cm.Error), pch=19, col="green")
+points(atten_smooth_large_df$Bounce, abs(atten_smooth_large_df$Minus.5cm.Error), pch=19, col="gold")
+points(atten_smooth_small_df$Bounce, abs(atten_smooth_small_df$Minus.5cm.Error), pch=19, col="purple")
+
+abline(typical_minus5_base_lm, col="black")
+abline(typical_minus5_smooth_lm, col="red")
+abline(typical_minus5_base_large_lm, col="blue")
+abline(typical_minus5_base_small_lm, col="green")
+abline(typical_minus5_smooth_large_lm, col="gold")
+abline(typical_minus5_smooth_small_lm, col="purple")
+```
