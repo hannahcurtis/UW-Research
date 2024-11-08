@@ -1,0 +1,1531 @@
+---
+title: "Paper1_plsr"
+author: "Hannah Curtis"
+date: "2024-07-26"
+output: html_document
+---
+
+This is a script to run the PLSR algorithm to predict ecosystem service response variables using hydrologic, engineering design, and watershed variables. This file will be used to generate the results for my first paper.
+
+Still need to add new vars for rainfall amount and runoff ratio
+
+Date created: 8/1/24
+
+Last updated: 8/6/24
+
+Load packages and read in predictor variable data frames
+```{r}
+library(vip)
+library(caret)
+library(corrr)
+library(ggcorrplot)
+library(FactoMineR)
+library(factoextra)
+library(car)
+library(pls)
+library(plsdepot)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+library(stats)
+library(Metrics)
+library(AICcmodavg)
+library(plsRglm)
+library(plsdof)
+```
+
+```{r}
+# Data frame including all 20 ponds
+df_all_ponds <- read.csv("all_predictor_vars_updated.csv")
+# Data frame including 15 ponds original modeling performed on
+#df_old_ponds <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Paper 1 Modeling/all_predictor_vars_original_ponds.csv")
+# Data frame including 5 new ponds
+#df_new_ponds <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Paper 1 Modeling/all_predictor_vars_new_ponds.csv")
+df_corr <- read.csv("all_predictor_vars_updated_corr_new.csv")
+df_corr_es <- read.csv("ES_Corr_Matrix.csv")
+```
+AIC Test
+```{r}
+
+# run PLSR
+set.seed(0)
+model_1 <- plsr(Attenuation ~ Max.Bounce.Norm+Pond.Variance+LF.Outlet.Restrict.Norm+Watershed.Area.ft2+Average.Watershed.Slope+Res.Percent.200m.Buffer,
+  data=df_all_ponds, scale=TRUE, validation="CV", segments=5,  ncomp=3
+)
+
+# RMSEP and % variance explained
+summary(model_1)
+
+# Extract coefficients
+coefficients <- coef(model_1)
+
+# Make plots square (better to visualize predictions when x and y axes are the same)
+par(pty="s")
+
+# Plot predicted vs measured using first 3 components
+plot(model_1, ncomp=3, line=TRUE, main="",  xlab="Measured Attenuation (% Reduction in Inflow)", ylab="Predicted Attenuation (% Reduction in Inflow)", pch = 16, col = "#43AA8B", bg="transparent", cex.axis=1)
+grid()
+
+# R-squared
+print(pls::R2(model_1))
+#print(Q2(model))
+
+#MODEL 2
+# run PLSR
+set.seed(0)
+model_2 <- plsr(Attenuation ~ Pond.Variance+LF.Outlet.Restrict.Norm+Watershed.Area.ft2+Average.Watershed.Slope+Res.Percent.200m.Buffer,
+  data=df_all_ponds, scale=TRUE, validation="CV", segments=5,  ncomp=3
+)
+
+# RMSEP and % variance explained
+summary(model_2)
+
+# Extract coefficients
+coefficients <- coef(model_2)
+
+# Make plots square (better to visualize predictions when x and y axes are the same)
+par(pty="s")
+
+# Plot predicted vs measured using first 3 components
+plot(model_2, ncomp=3, line=TRUE, main="",  xlab="Measured Attenuation (% Reduction in Inflow)", ylab="Predicted Attenuation (% Reduction in Inflow)", pch = 16, col = "blue", bg="transparent", cex.axis=1)
+grid()
+
+# R-squared
+print(pls::R2(model_2))
+#print(Q2(model))
+
+num_predictors <- ncol(model.matrix(model_1))   # Subtract 1 for the intercept
+num_params <- num_predictors + model_1$ncomp
+
+num_predictors_2 <- ncol(model.matrix(model_2))   # Subtract 1 for the intercept
+num_params_2 <- num_predictors_2 + model_2$ncomp
+
+
+AIC <- AICpls(3, model_1$residuals)
+AIC
+
+AIC_2 <- AICpls(3, model_2$residuals)
+AIC_2
+
+AICC <- AIC + (2*num_params*(num_params + 1))/(nrow(df_all_ponds)-num_params-1)
+AICC
+
+AICC_2 <- AIC_2 + (2*num_params_2*(num_params_2 + 1))/(nrow(df_all_ponds)-num_params_2-1)
+AICC_2
+#print(plsR.dof(model_1))
+#print(pls.dof(model_2))
+```
+
+Correlation Matrix
+```{r}
+corr_all <- cor(df_corr[, c(3:24, 26, 28:46)])
+#corr_hyd <- cor(df_corr[, c(5,9,12,14,17,20:25,108,136,139)])
+#corr_eng <- cor(df_corr[, c(26,33,35,36,40,43:44,46:50,90:92,133)])
+#corr_ws <- cor(df_corr[, c(45,51:58,125,128,131)])
+corr_es <- cor(df_corr_es[, c(3:23)], use = "pairwise.complete.obs")
+
+predictor_labels <- c(
+  "Max.Bounce.Norm" = "Max Bounce",
+  "Decline.Rate.Norm" = "Gradual Decline Rate",
+  "Inflow.Rate.Norm" = "Rate of Water Level Increase",
+  "Contant.Water.Level.6in" = "% Days Water Level Near Mode",
+  "Outlet.Water.Level" = "% Days Water Level Near Outlet",
+  "Below.Outlet.Water.Level" = "% Days Water Level Below Outlet",
+  "Pond.Skewness" = "Skewness of Water Level Histogram",
+  "Pond.Variance" = "Variance of Water Level Histogram",
+  "Urban.Baseflow" = "Urban Baseflow",
+  "Rain.Amount.Norm" = "Rainfall Depth",
+  "Runoff.Depth.Norm" = "Runoff Depth",
+  "Runoff.Ratio.Norm" = "Runoff Ratio",
+  "Temp.Variance.Norm" = "Temperature Variance",
+  "Pond.Age" = "Pond Age",
+  "Pond.Area.ft2" = "Pond Area",
+  "WA.PA" = "Watershed Area/Pond Area",
+  "L.to.W.ratio" = "Length-to-Width Ratio",
+  "Avg.Pond.Depth" = "Average Pond Depth",
+  "Max.Pond.Depth" = "Maximum Pond Depth",
+  "Res.Time" = "Pond Volume/Watershed Area",
+  "Residence.Time.Days" = "Residence Time",
+  "LF.Outlet.Restrict.Correct" = "Low-Flow Outlet Restrictiveness",
+  "HF.Outlet.Restrict.Correct" = "High-Flow Outlet Restrictiveness",
+  "Number.of.Outlets" = "Number of Outlets",
+  "Total...Veg.Species" = "# Vegetation Species Surrounding Pond",
+  "X..Non.native.species" = "% Non-Native Vegetation Species Surrounding Pond",
+  "Mow.Distance" = "Distance to Mowed Area",
+  "avg_sed_cm" = "Average Sediment Depth",
+  "avg_bd..g.cm3." = "Average Bulk Density",
+  "per_om" = "% Organic Matter",
+  "Watershed.Area.ft2" = "Watershed Area",
+  "Commercial.Percent" = "% Commercial",
+  "Residential.Percent" = "% Residential",
+  "Greenspace.Percent" = "% Greenspace",
+  "Comm.Percent.200m.Buffer" = "% Commercial in 200m Buffer Zone",
+  "Res.Percent.200m.Buffer" = "% Residential in 200m Buffer Zone",
+  "GS.Percent.200m.Buffer" = "% Greenspace in 200m Buffer Zone",
+  "Impervious.Percent.Recalc" = "% Impervious",
+  "Canopy.Percent" = "% Canopy Cover",
+  "Curve.Number" = "Curve Number",
+  "Average.Development.Age" = "Average Age of Development",
+  "Average.Watershed.Slope" = "Average Watershed Slope"
+)
+
+response_labels <- c(
+  "Attenuation" = "Attenuation",
+  "TN" = "TN Concentration",
+  "TN.Improvement" = "TN % Improvement",
+  "TP" = "TP Concentration",
+  "TP.Improvement" = "TP % Improvement",
+  "Chloride" = "Chloride Concentration",
+  "Chloride.Improvement" = "Chloride % Improvement",
+  "Nitrate" = "Nitrate Concentration",
+  "Nitrate.Improvement" = "Nitrate % Improvement",
+  "Dissolved.Oxygen" = "DO Concentration",
+  "DO.Improvement" = "DO Improvement",
+  "TSS" = "TSS Concentration",
+  "TSS.Improvement" = "TSS Improvement",
+  "Clarity" = "Water Clarity",
+  "Clarity.Improvement" = "Water Clarity Improvement",
+  "Percent.Days.with.Outflow" = "% Days with Outflow",
+  "WA.Peak.Outflow" = "Watershed Area/Peak Outflow",
+  "Total.Richness" = "In Pond Species Richness",
+  "DS.Cleanliness" = "Downstream Cleanliness",
+  "In.pond.cleanliness" = "In Pond Cleanliness",
+  "Odor" = "Odor"
+)
+
+# Visualize the correlation matrix with ggcorrplot
+corr_matrix_all <- ggcorrplot(
+  corr_all, 
+  method = "square", 
+  colors = c("#904C77", "white", "#43AA8B"), 
+  type = "full", 
+  lab = TRUE,
+  lab_size = 2,
+  tl.cex = 20  # Adjust text label size on axes
+) +
+  theme(
+    panel.background = element_rect(fill = "transparent", color = NA),
+    plot.background = element_rect(fill = "transparent", color = NA)
+  ) +
+  scale_x_discrete(labels = predictor_labels) +
+  scale_y_discrete(labels = predictor_labels) +
+  theme(
+    axis.text.x = element_text(size = 14), # Adjust size for x-axis labels
+    axis.text.y = element_text(size = 14)  # Adjust size for y-axis labels
+  )
+
+ggsave("correlation_plot_all.png", width = 15, height = 15)
+
+# corr_matrix_hyd <- ggcorrplot(corr_hyd, 
+#            method = "square", 
+#            type = "lower",
+#            colors = c("#43AA8B", "white", "#904C77"), 
+#            lab = TRUE,
+#            lab_size = 3,
+#            tl.cex = 20           # Adjust text label size on axes
+#         +  theme(panel.background = element_rect(fill = "transparent", color = NA),
+#            plot.background = element_rect(fill = "transparent", color = NA)))
+# 
+# # Customize the axis text size using theme()
+# corr_matrix_hyd <- corr_matrix_hyd + theme(
+#   axis.text.x = element_text(size = 12), # Adjust size for x-axis labels
+#   axis.text.y = element_text(size = 12)  # Adjust size for y-axis labels
+# )
+# ggsave("correlation_plot_hyd.png", width = 8, height = 8)
+# 
+# corr_matrix_eng <- ggcorrplot(corr_eng, 
+#            method = "square", 
+#            type = "lower", 
+#            colors = c("#43AA8B", "white", "#904C77"), 
+#            lab = TRUE,
+#            lab_size = 3,
+#            tl.cex = 20           # Adjust text label size on axes
+#         +  theme(panel.background = element_rect(fill = "transparent", color = NA),
+#            plot.background = element_rect(fill = "transparent", color = NA)))
+# 
+# # Customize the axis text size using theme()
+# corr_matrix_eng <- corr_matrix_eng + theme(
+#   axis.text.x = element_text(size = 11), # Adjust size for x-axis labels
+#   axis.text.y = element_text(size = 11)  # Adjust size for y-axis labels
+# )
+
+# ggsave("correlation_plot_eng.png", width = 10, height = 10)
+# 
+# corr_matrix_ws <- ggcorrplot(corr_ws, 
+#            method = "square", 
+#            type = "lower", 
+#            colors = c("#43AA8B", "white", "#904C77"), 
+#            lab = TRUE,
+#            lab_size = 3,
+#            tl.cex = 20           # Adjust text label size on axes
+#         +  theme(panel.background = element_rect(fill = "transparent", color = NA),
+#            plot.background = element_rect(fill = "transparent", color = NA)))
+# 
+# # Customize the axis text size using theme()
+# corr_matrix_ws <- corr_matrix_ws + theme(
+#   axis.text.x = element_text(size = 12), # Adjust size for x-axis labels
+#   axis.text.y = element_text(size = 12)  # Adjust size for y-axis labels
+# )
+# 
+# ggsave("correlation_plot_ws.png", width = 8, height = 8)
+
+# Visualize the correlation matrix with ggcorrplot
+corr_matrix_es <- ggcorrplot(
+  corr_es, 
+  method = "square", 
+  colors = c("#904C77", "white", "#43AA8B"), 
+  type = "full", 
+  lab = TRUE,
+  lab_size = 2,
+  tl.cex = 20  # Adjust text label size on axes
+) +
+  theme(
+    panel.background = element_rect(fill = "transparent", color = NA),
+    plot.background = element_rect(fill = "transparent", color = NA)
+  ) +
+  scale_x_discrete(labels = response_labels) +
+  scale_y_discrete(labels = response_labels) +
+  theme(
+    axis.text.x = element_text(size = 14), # Adjust size for x-axis labels
+    axis.text.y = element_text(size = 14)  # Adjust size for y-axis labels
+  )
+
+ggsave("correlation_plot_es.png", width = 8, height = 8)
+
+```
+
+
+Run PLSR on all 20 ponds
+
+Test
+```{r}
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(8)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+# run PLSR
+set.seed(0)
+model <- plsr(Attenuation ~ Max.Bounce.Norm+Pond.Variance+LF.Outlet.Restrict.Norm+Watershed.Area.ft2+Average.Watershed.Slope+Res.Percent.200m.Buffer,
+  data=train_data, scale=TRUE, validation="CV", segments=5,  ncomp=3
+)
+
+# Outlet.Water.Level+Below.Outlet.Water.Level+Water.Level.10.90.Quantile+Pond.Skewness+Pond.Area.ft2+Res.Time+L.to.W.ratio+HF.Outlet.Restrict.1+Pond.Age+Total...Veg.Species+Commercial.Percent+Curve.Number+Urban.Baseflow+Canopy.Percent+per_om+GS.Percent.200m.Buffer+Mow.Distance
+
+# RMSEP and % variance explained
+summary(model)
+
+# Extract coefficients
+coefficients <- coef(model)
+
+# Make plots square (better to visualize predictions when x and y axes are the same)
+par(pty="s")
+
+# Plot predicted vs measured using first 3 components
+plot(model, ncomp=3, line=TRUE, main="",  xlab="Measured Attenuation (% Reduction in Inflow)", ylab="Predicted Attenuation (% Reduction in Inflow)", pch = 16, col = "#43AA8B", bg="transparent", cex.axis=1)
+grid()
+
+# R-squared
+print(pls::R2(model))
+#print(Q2(model))
+
+atten_vip <- vi(model, ncomp=3)
+coef(model)
+
+# Extract loadings
+loadings <- as.data.frame(model$loadings[, 1:3])  # Adjust to the number of components
+loadings$variable <- rownames(loadings)
+
+# Melt data for ggplot
+loadings_long <- reshape2::melt(loadings, id.vars = "variable", variable.name = "Component", value.name = "Loading")
+
+# Plot bar chart
+ggplot(loadings_long, aes(x = reorder(variable, Loading), y = Loading, fill = Component)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_manual(values = c("Comp 1" = "#904C77", "Comp 2" = "#43AA8B", "Comp 3" = "#3083DC")) +
+  labs(x = "Variable", y = "Loading", title = "") +
+  coord_flip() +
+  theme_minimal()
+```
+
+
+Hydrologic Variables:
+Max Bounce
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(7)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 61)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Max.Bounce.Norm")
+X = c("Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df_bounce = get_best_vars(X,y,df, objective="q-score")
+df_bounce
+```
+
+```{r}
+set.seed(0)
+model <- plsr(Max.Bounce.Norm ~ Res.Time+Number.of.Outlets+Commercial.Percent+Average.Development.Age	,
+  data=df, scale=TRUE, validation="CV", segments=5,  ncomp=3
+)
+pls::R2(model)
+```
+
+Decline Rate
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Decline.Rate.Norm")
+X = c("Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df_dr = get_best_vars(X,y,df, objective="aic")
+df_dr
+```
+
+Rate of WL Increase
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Inflow.Rate.Norm")
+X = c("Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df_wli = get_best_vars(X,y,df, objective="aic")
+df_wli
+```
+
+% WL within 6in of Mode
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Contant.Water.Level.6in")
+X = c("Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df_cwl = get_best_vars(X,y,df, objective="aic")
+df_cwl
+```
+
+% Days WL Within 6in of Outlet
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Outlet.Water.Level")
+X = c("Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df_ol = get_best_vars(X,y,df, objective="aic")
+df_ol
+```
+
+% Days WL Below Outlet
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Below.Outlet.Water.Level")
+X = c("Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df_bo = get_best_vars(X,y,df, objective="aic")
+df_bo
+```
+
+Pond Skewness
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Pond.Skewness")
+X = c("Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df_ps = get_best_vars(X,y,df, objective="aic")
+df_ps
+```
+
+Pond Variance
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Pond.Variance")
+X = c("Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df_pv = get_best_vars(X,y,df, objective="aic")
+df_pv
+```
+
+In pond Regulating:
+Total Phosphorous Difference (Q2=0.44)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(11)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("TP.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df_tp = get_best_vars(X,y,df, objective="bic")
+df_tp
+```
+
+Total Nitrogen Difference (Q2=0.29)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(11)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("TN.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="bic")
+df
+```
+
+Chloride Difference (Q2=0.4)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(14)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 61)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Chloride.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="aic")
+df
+```
+
+Nitrate Difference (Q2=0.47)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(7)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Nitrate.Change....")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="aic")
+df
+```
+
+Ammonia Difference (Q2=0.11)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Ammonia.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="aic")
+df
+```
+
+Sulfate Difference (Q2=0.34)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Sulfate.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="aic")
+df
+```
+
+TSS Difference (Q2=0.03)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("TSS..Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="aic")
+df
+```
+
+DO Difference (Q2=0.16)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("YSI.DO.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="aic")
+df
+```
+
+SPC Difference (Q2=0.88)
+```{r}
+# Subset data frame to only use last storm
+df_spc <- df_all_ponds[39:76,]
+
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_spc), 27)
+# split data
+train_data <- df_spc[random_indices, ]
+validation_data <- df_spc[-random_indices, ]
+
+df <- train_data
+
+df <- df_spc
+
+y = c("SPC.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+Downstream Regulating:
+Attenuation (Q2=0.72)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(11)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Attenuation")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="bic")
+df
+```
+```{r}
+plot(df$min_bic)
+```
+
+In pond supporting:
+Total Richness (Q2=0.93)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(8)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Total.Richness")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="aic")
+df
+```
+
+Downstream Supporting:
+Percent of Days with Outflow (Q2=0.97)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Percent.Days.Outflow")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="aic")
+df
+```
+
+Peak Outflow (Q2=0.97)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Peak.Outflow.Norm")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="aic")
+df
+```
+
+In Pond Cultural:
+Water Clarity Change (Q2=0.25)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Clar.Diff")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+df = get_best_vars(X,y,df, objective="aic")
+df
+```
+
+Odor Change (Q2=0.22)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Odor.Diff")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+df = get_best_vars(X,y,df, objective="aic")
+df
+```
+
+Trash Count Change (Q2=0.17)
+```{r}
+source("find_best_model.R")
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 57)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+df <- train_data
+
+y = c("Trash.Diff")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Pond.Skewness","Pond.Variance","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="aic")
+df
+```
+
+Run PLSR on 15 original ponds
+
+In pond Regulating:
+Total Phosphorous Difference (Q2=0.43)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("TP.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+Total Nitrogen Difference (Q2=0.27)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("TN.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+Chloride Difference (Q2=0.57)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("Chloride.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+Nitrate Difference (Q2=0.53)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("Nitrate.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+Ammonia Difference--need to change number of components in source file from 5 to 4 for code to run (Q2=0.17)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("Ammonia.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+Sulfate Difference (Q2=0.49)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("Sulfate.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+TSS Difference (Q2=0.14)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("TSS..Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+DO Difference (Q2=0.25)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("YSI.DO.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+SPC Difference (Q2=0.94)
+```{r}
+# Subset data frame to only use last storm
+df_spc <- df_old_ponds[29:43,]
+
+source("find_best_model.R")
+df <- df_spc
+
+y = c("SPC.Difference")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+Downstream Regulating:
+Attenuation (Q2=0.81)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("Attenuation")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+In pond supporting:
+Total Richness (Q2=0.98)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("Total.Richness")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+Downstream Supporting:
+Percent of Days with Outflow (Q2=0.99)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("Percent.Days.Outflow")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+Peak Outflow (Q2=0.98)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("Peak.Outflow")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+In Pond Cultural:
+Water Clarity Change--need to change number of components from 5 to 4 in source file for code to run(Q2=0.12)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("Clar.Diff")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+Odor Change (Q2=0.28)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("Odor.Diff")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+Trash Count Change (Q2=0.26)
+```{r}
+source("find_best_model.R")
+df <- df_old_ponds
+
+y = c("Trash.Late")
+X = c("Max.Bounce.Norm","Decline.Rate.Norm","Inflow.Rate.Norm","Temp.Variance.Norm","Contant.Water.Level.6in","Outlet.Water.Level","Below.Outlet.Water.Level","Water.Level.25.75.Quantile","Water.Level.10.90.Quantile","Pond.Skewness","Pond.Area.ft2","WA.PA","Res.Time","Avg.Pond.Depth","Max.Pond.Depth","L.to.W.ratio","LF.Outlet.Restrict.Norm","HF.Outlet.Restrict.1","Number.of.Outlets","Pond.Age","Total...Veg.Species","X..Non.native.species.1","Watershed.Area.ft2","Impervious.Percent.Recalc","Commercial.Percent","Residential.Percent","Greenspace.Percent","Curve.Number","Urban.Baseflow","Average.Watershed.Slope","Average.Development.Age","Canopy.Percent","avg_bd..g.cm3.","avg_sed_cm","per_om","Runoff.Depth.Norm", "Comm.Percent.200m.Buffer", "Res.Percent.200m.Buffer", "GS.Percent.200m.Buffer", "Mow.Distance", "Rain.Amount.Norm", "Runoff.Ratio.Norm")
+
+## options for each var:
+## reduce_model: vi, vi_aic, aic, q-score
+## overall_obj: q-score, aic
+df = get_best_vars(X,y,df, objective="q-score")
+df
+```
+
+Use 5 new ponds as validation set
+```{r}
+# Example code
+
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 44)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+# Fit PLSR model on training data
+pls_model <- plsr(Nitrate.Difference ~
+								Max.Bounce.Norm+Pond.Skewness+Impervious.Percent.Recalc+Commercial.Percent, 
+  scale = TRUE, data = train_data, ncomp = 1, validation = "CV", segments=5
+)
+
+# RMSEP and % variance explained
+summary(pls_model)
+
+# R-squared
+print(pls::R2(pls_model))
+#print(Q2(model))
+
+# Predict on validation data
+train_predictions <- predict(pls_model, newdata = train_data, ncomp = 1)
+test_predictions <- predict(pls_model, newdata = validation_data, ncomp = 1)
+train_y <- train_data$Nitrate.Difference
+validation_y <- validation_data$Nitrate.Difference
+
+# Calculate performance metrics
+
+
+train_rmse <- rmse(train_data$Nitrate.Difference, train_predictions)
+print(paste("Training RMSE:", round(train_rmse, 4)))
+
+# Example: R-squared for training data
+train_r2 <- cor(train_data$Nitrate.Difference, train_predictions)^2
+print(paste("Training R-squared:", round(train_r2, 4)))
+
+# Calculate performance metrics for testing data
+test_rmse <- rmse(validation_data$Nitrate.Difference, test_predictions)
+print(paste("Testing RMSE:", round(test_rmse, 4)))
+
+test_r2 <- cor(validation_data$Nitrate.Difference, test_predictions)^2
+print(paste("Testing R-squared:", round(test_r2, 4)))
+
+
+# Make plots square (better to visualize predictions when x and y axes are the same)
+par(pty="s")
+# Plot actual vs predicted values for validation dataset
+#plot(actual_values, test_predictions, xlab = "Actual", ylab = "Predicted", main = "Predicted vs. Actual Attenuation", pch = 16, col = "dodgerblue2", bg="transparent", cex.axis=1)
+#grid()
+# Add the line y = x
+#abline(a = 0, b = 1, col = "black", lwd = 2)
+```
+
+Testing PLSR Results: Water Quality
+```{r}
+# make this example reproducible
+set.seed(0)
+
+# run PLSR
+model <- plsr(TP.Difference ~ 					Inflow.Rate.Norm+Temp.Variance.Norm+Contant.Water.Level.6in+Pond.Area.ft2+Max.Pond.Depth+Average.Watershed.Slope,
+  data=df_all_ponds, scale=TRUE, validation="CV", segments=5,  ncomp=3
+)
+
+# RMSEP and % variance explained
+summary(model)
+
+# Extract coefficients
+coefficients <- coef(model)
+
+# visualize cross-validation plots
+validationplot(model)
+validationplot(model, val.type="MSEP")
+#validationplot(model, val.type="R2")
+
+# Make plots square (better to visualize predictions when x and y axes are the same)
+par(pty="s")
+
+# Plot predicted vs measured using first 3 components
+plot(model, ncomp=3, line=TRUE, main="",  xlab="Measured SPC Difference", ylab="Predicted SPC Difference", pch = 16, col = "seagreen3", bg="transparent", cex.axis=1)
+grid()
+
+# R-squared
+print(pls::R2(model))
+#print(Q2(model))
+
+vip<-vi(model, ncomp=8)
+coefs <- coef(model)
+
+```
+
+Testing PLSR Results: Attenuation (check predictor vars--no outlet restrictiveness)
+```{r}
+# make this example reproducible
+set.seed(0)
+
+# run PLSR
+model <- plsr(Attenuation ~ 	Max.Bounce.Norm+Avg.Pond.Depth+LF.Outlet.Restrict.Norm+Pond.Age+X..Non.native.species.1+avg_sed_cm+per_om
+,
+  data=df_all_ponds, scale=TRUE, validation="CV", segments=5,  ncomp=2
+)
+
+# RMSEP and % variance explained
+summary(model)
+
+# Extract coefficients
+coefficients <- coef(model)
+
+# visualize cross-validation plots
+validationplot(model)
+validationplot(model, val.type="MSEP")
+#validationplot(model, val.type="R2")
+
+# Make plots square (better to visualize predictions when x and y axes are the same)
+par(pty="s")
+
+# Plot predicted vs measured using first 3 components
+plot(model, ncomp=2, line=TRUE, main="",  xlab="Measured Attenuation", ylab="Predicted Attenuation", pch = 16, col = "thistle", bg="transparent", cex.axis=1)
+grid()
+
+# R-squared
+print(pls::R2(model))
+#print(Q2(model))
+
+vip<-vi(model, ncomp=8)
+coefs <- coef(model)
+
+```
+
+Testing PLSR Results: Total Richness
+```{r}
+# make this example reproducible
+set.seed(0)
+
+# run PLSR
+model <- plsr(Total.Richness ~ 	Contant.Water.Level.6in+X..Non.native.species.1+Commercial.Percent+avg_bd..g.cm3.+Mow.Distance+Runoff.Ratio.Norm
+,
+  data=df_all_ponds, scale=TRUE, validation="CV", segments=5,  ncomp=3
+)
+
+# RMSEP and % variance explained
+summary(model)
+
+# Extract coefficients
+coefficients <- coef(model)
+
+# visualize cross-validation plots
+validationplot(model)
+validationplot(model, val.type="MSEP")
+#validationplot(model, val.type="R2")
+
+# Make plots square (better to visualize predictions when x and y axes are the same)
+par(pty="s")
+
+# Plot predicted vs measured using first 3 components
+plot(model, ncomp=3, line=TRUE, main="",  xlab="Measured Richness", ylab="Predicted Richness", pch = 16, col = "lightpink", bg="transparent", cex.axis=1)
+grid()
+
+# R-squared
+print(pls::R2(model))
+#print(Q2(model))
+
+vip<-vi(model, ncomp=8)
+coefs <- coef(model)
+```
+
+Testing PLSR Results: Flow Regimes
+```{r}
+# Split into training (75%) and validation (25%) sets
+# make reproducible
+set.seed(0)
+# find random indices
+random_indices <- sample(1:nrow(df_all_ponds), 44)
+# split data
+train_data <- df_all_ponds[random_indices, ]
+validation_data <- df_all_ponds[-random_indices, ]
+
+# run PLSR
+model <- plsr(Peak.Outflow.Norm ~ 	Max.Bounce.Norm+LF.Outlet.Restrict.Norm+X..Non.native.species.1+per_om
+
+,
+  data=train_data, scale=TRUE, validation="CV", segments=5,  ncomp=2
+)
+
+# Outlet.Water.Level+Below.Outlet.Water.Level+Water.Level.10.90.Quantile+Pond.Skewness+Pond.Area.ft2+Res.Time+L.to.W.ratio+HF.Outlet.Restrict.1+Pond.Age+Total...Veg.Species+Commercial.Percent+Curve.Number+Urban.Baseflow+Canopy.Percent+per_om+GS.Percent.200m.Buffer+Mow.Distance
+
+# RMSEP and % variance explained
+summary(model)
+
+# Extract coefficients
+coefficients <- coef(model)
+
+# visualize cross-validation plots
+validationplot(model)
+validationplot(model, val.type="MSEP")
+#validationplot(model, val.type="R2")
+
+# Make plots square (better to visualize predictions when x and y axes are the same)
+par(pty="s")
+
+# Plot predicted vs measured using first 3 components
+plot(model, ncomp=2, line=TRUE, main="",  xlab="Measured Peak Outflow/Watershed Area", ylab="Predicted Peak Outflow/Watershed Area", pch = 16, col = "dodgerblue2", bg="transparent", cex.axis=1)
+grid()
+
+# R-squared
+print(pls::R2(model))
+#print(Q2(model))
+
+vip <- vi(model, ncomp=2)
+vip$Importance <- (vip$Importance*1000000)+0.5
+coefs <- coef(model)
+```
+
+Testing PLSR Results: Aesthetics
+```{r}
+# make this example reproducible
+set.seed(0)
+
+# run PLSR
+model <- plsr(Trash.Late ~ 	HF.Outlet.Restrict.1+X..Non.native.species.1+Watershed.Area.ft2+avg_sed_cm
+,
+  data=df_all_ponds, scale=TRUE, validation="CV", segments=5,  ncomp=2
+)
+
+# Inflow.Rate.Norm+Water.Level.25.75.Quantile+Pond.Skewness+Avg.Pond.Depth+LF.Outlet.Restrict.Norm+HF.Outlet.Restrict.1+X..Non.native.species.1+Watershed.Area.ft2+Impervious.Percent.Recalc+Commercial.Percent+avg_sed_cm+Runoff.Depth.Norm
+
+# RMSEP and % variance explained
+summary(model)
+
+# Extract coefficients
+coefficients <- coef(model)
+
+# visualize cross-validation plots
+validationplot(model)
+validationplot(model, val.type="MSEP")
+#validationplot(model, val.type="R2")
+
+# Make plots square (better to visualize predictions when x and y axes are the same)
+par(pty="s")
+
+# Plot predicted vs measured using first 3 components
+plot(model, ncomp=2, line=TRUE, main="",  xlab="Measured Trash Count", ylab="Predicted Trash Count", pch = 16, col = "salmon", bg="transparent", cex.axis=1)
+grid()
+
+# R-squared
+print(pls::R2(model))
+#print(Q2(model))
+
+vip <- vi(model, ncomp=8)
+coefs <- coef(model)
+```
+
+Bar Charts
+```{r}
+# Vector of VIP scores
+vip_df <- data.frame(variable = atten_vip$Variable, VIP_score = atten_vip$Importance)
+
+# Arrange data frame from highest to lowest VIP scores
+vip_df_desc <- arrange(vip_df, -VIP_score)
+
+# Add variable type as column to data frame
+# Create a vector of variable types corresponding to each variable
+variable_types <- c("ED", "WS", "HYD", "HYD", "WS", "WS")  # Adjust with your actual variable types
+
+# Add alphabetical column to data frame so that bar chart will be plotted correctly
+# Create an alphabetical vector
+alphabet <- c("U", "T", "S", "R", "P", "M")
+
+# Add the variable type column to richness_vip_df
+vip_df$type <- variable_types
+
+# Sort the data frame by variable type
+#richness_vip_df %>% arrange(type)
+vip_df_grouped <- arrange(vip_df, type)
+
+# Add alphabetical column to data frame
+vip_df_grouped$alphabet <- alphabet
+
+# Create custom labels for y axis that are the same as the richness_vip_df_grouped$variable column and in the same order
+custom_labels <- c("Low Flow Outlet Restrictiveness", "Max Bounce", "Variance of WL Histogram", "Watershed Area", "% Residential in 200m Buffer", "Average Watershed Slope")
+ 
+
+# Can you create a custom_labels vector that is the same as above but switch the order of all of the labels so the last one above is the first in this vector, etc.
+custom_labels <- rev(custom_labels)
+
+# Plot the sideways bar chart by alphabet column to get the variables grouped by type and sorted by VIP score within each type
+ggplot(vip_df_grouped, aes(x = VIP_score, y = alphabet, fill = VIP_score)) +
+  geom_bar(stat = "identity") +
+  scale_fill_gradient(low = "white", high = "#43AA8B", name = "VIP Score") +
+  scale_y_discrete(labels = custom_labels) +
+  labs(x = "VIP Score", y = "") +
+  theme(axis.text.y = element_text(angle = 0, hjust = 1, size = 14)) +
+  geom_hline(aes(yintercept=5.5)) +
+  geom_hline(aes(yintercept=3.5))
+```
+
