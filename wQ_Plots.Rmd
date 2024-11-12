@@ -1,0 +1,676 @@
+---
+title: "WQ_Plots"
+author: "Hannah Curtis"
+date: "2024-04-09"
+output: html_document
+---
+
+This file is for creating figures to show the change in magnitude of various water quality variables by storm (1 day after storm vs 7-10 days after) for each pond. The water quality variables include chloride, sulfate, nitrate, ammonia, TN, TP, water clarity, TSS, and DO. The storm dates are 7/29/23, 8/14/23, and 9/26/23.
+
+5/3: Added plots for odor, trash count, and SPC
+
+Last updated: 5/3/24
+
+Read in data file
+```{r}
+#wq_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/WQ_Plots.csv")
+wq_data_2 <- read.csv("WQ_Plots_2.csv")
+#aesthetic_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Aesthetic/Aesthetic_Plots.csv")
+#SPC_data <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Response_Variables/Water_Quality/SPC_Plots.csv")
+```
+
+Write function for plotting water quality arrows by storm
+```{r}
+plot_with_arrows <- function(x, y1, y2, ylab) {
+  # Create a new plot
+  plot(x, y1, type = "n", ylim = c((min(c(y1,y2))-(0.1*min(c(y1,y2)))), (max(c(y1,y2))+(0.1*max(c(y1,y2))))), xlim = c(min(x)-2, max(x)+4), xlab = "", ylab = ylab, xaxt = "n", xaxs = "i", yaxs = "i",      cex.lab = 1.4,  # Increase size of axis labels
+     cex.axis = 1.4) # Increase size of tick labels)
+  
+  # Define the interval for shading
+x_interval <- 12
+
+  # Add shaded rectangles for every other interval
+for (i in seq(0, max(x), by = x_interval * 2)) {
+  rect(xleft = i, xright = i + x_interval, ybottom = par("usr")[3], ytop = par("usr")[4],
+       col = "gray90", border = NA)
+}
+  
+  # add grid
+  #grid(nx = NULL, ny = NULL, col = "grey")
+  
+  # add border of plot back in
+  box()
+
+  # Add points for the second set of y-values
+  points(x, y2, type = "n")
+  
+  # Define arrow colors
+  arrow_colors <- rep(c("#B3CBB9", "#84A9C0", "#6A66A3", "#542E71"), length.out = length(x))
+  
+  # Add arrows for each pair of points with alternating colors
+  for (i in seq_along(x)) {
+    col <- arrow_colors[i]
+    arrows(x[i], y1[i], x[i], y2[i], length = 0.08, lwd = 2, col = col)
+  }
+}
+```
+
+Chloride
+```{r}
+png("chloride.png", width = 800, height = 600)
+
+chloride_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$Chloride.1..mg.L., wq_data_2$Chloride.2..mg.L., "Chloride Concentration (mg/L)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 1, ny = NULL)
+
+box()
+
+dev.off()
+```
+Sulfate 
+```{r}
+
+png("sulfate.png", width = 800, height = 600)
+
+sulfate_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$Sulfate.1..mg.L., wq_data_2$Sulfate.2..mg.L., "Sulfate Concentration (mg/L)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+
+Nitrate
+```{r}
+png("nitrate.png", width = 800, height = 600)
+
+nitrate_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$Nitrate.1..ug.L., wq_data_2$Nitrate.2..ug.L., "Nitrate Concentration (ug/L)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+Ammonia
+```{r}
+png("ammonia.png", width = 800, height = 600)
+
+ammonia_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$Ammonia.1..ug.L., wq_data_2$Ammonia.2..ug.L., "Ammonia Concentration (ug/L)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+TN
+```{r}
+png("tn.png", width = 800, height = 600)
+
+TN_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$TN.1..ug.L., wq_data_2$TN.2..ug.L., "Total Nitrogen Concentration (ug/L)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+TP
+```{r}
+png("tp.png", width = 800, height = 600)
+
+TP_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$TP.1..ug.L., wq_data_2$TP.2..ug.L., "Total Phosphorous Concentration (ug/L)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+Water Clarity
+```{r}
+png("clarity.png", width = 800, height = 600)
+
+clarity_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$Secchi.Disk.Depth.1..cm., wq_data_2$Secchi.Disk.Depth.2..cm., "Secchi Disk Depth (cm)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+
+```
+TSS
+```{r}
+png("tss.png", width = 800, height = 600)
+
+TSS_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$TSS.1..mg.L., wq_data_2$TSS.2..mg.L., "TSS Concentration (mg/L)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+
+```
+
+DO
+```{r}
+png("do.png", width = 800, height = 600)
+
+DO_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$YSI.DO.1..mg.L., wq_data_2$YSI.DO.2..mg.L., "DO Concentration (mg/L)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+SPC
+```{r}
+png("spc.png", width = 800, height = 600)
+
+spc_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$SPC.1, wq_data_2$SPC.2, "Specific Conductance (uS/cm)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+
+Label x-axis by pond names
+```{r}
+pond_names <- c("Hospital", "Lot 60", "Garner", "DobA7", "Owen", "HP Church", "DobA8", "Midtown", "Elver", "Two Fountains", "Greentree", "Marion-Dunn", "Manitou", "Mad City", "Baxter", "DobA22", "DobA5", "DobA4", "Door Creek", "Comm Ave")
+
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 6th point)
+custom_ticks <- seq(4, max(x), by = 9)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 9)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2)
+
+```
+Trash Count
+```{r}
+png("trash.png", width = 800, height = 600)
+
+trash_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$Trash.1, wq_data_2$Trash.2, "In-pond Trash Count")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+
+Downstream Trash
+```{r}
+png("dstrash.png", width = 800, height = 600)
+
+dstrash_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$DS.Trash.1, wq_data_2$DS.Trash.2, "Downstream Trash Count")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+
+Odor
+```{r}
+png("odor.png", width = 800, height = 600)
+
+odor_plot <- plot_with_arrows(wq_data_2$Num4, wq_data_2$Odor.1, wq_data_2$Odor.2, "Odor Score")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+
+Attenuation
+```{r}
+plot_with_dots <- function(x, y1, ylab) {
+  # Define arrow colors
+  dot_colors <- c("#B3CBB9", "#84A9C0", "#6A66A3", "#542E71", "#B3CBB9", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#B3CBB9", "#84A9C0", "#6A66A3", "#542E71", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71","#B3CBB9", "#84A9C0", "#6A66A3", "#542E71")
+  
+  # Create a new plot
+  plot(x, y1, col = dot_colors, pch = 19, ylim = c((min(c(y1))-(0.1*min(c(y1)))), (max(c(y1))+(0.1*max(c(y1))))), xlim = c(min(x)-2, max(x)+4), xlab = "", ylab = ylab, xaxt = "n", xaxs = "i", yaxs = "i",      cex.lab = 1.4,  # Increase size of axis labels
+     cex.axis = 1.4) # Increase size of tick labels)
+  
+  # Define the interval for shading
+x_interval <- 12
+
+  # Add shaded rectangles for every other interval
+for (i in seq(0, max(x), by = x_interval * 2)) {
+  rect(xleft = i, xright = i + x_interval, ybottom = par("usr")[3], ytop = par("usr")[4],
+       col = "gray90", border = NA)
+}
+  
+  # add grid
+  #grid(nx = NULL, ny = NULL, col = "grey")
+  
+  points(x, y1, col = dot_colors, pch = 19)
+  # add border of plot back in
+  box()
+
+}
+
+png("atten.png", width = 800, height = 600)
+
+atten_plot <- plot_with_dots(na.omit(wq_data_2$Num5), na.omit(wq_data_2$Atten), "Attenuation (% Reduction in Flow)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+
+Richness
+```{r}
+plot_with_dots <- function(x, y1, ylab) {
+  # Define arrow colors
+  # Create a new plot
+  plot(x, y1, col = "#B3CBB9", pch = 19, ylim = c((min(c(y1))-(0.1*min(c(y1)))), (max(c(y1))+(0.1*max(c(y1))))), xlim = c(min(x)-2, max(x)+4), xlab = "", ylab = ylab, xaxt = "n", xaxs = "i", yaxs = "i",      cex.lab = 1.4,  # Increase size of axis labels
+     cex.axis = 1.4) # Increase size of tick labels)
+  
+  # Define the interval for shading
+x_interval <- 12
+
+  # Add shaded rectangles for every other interval
+for (i in seq(0, max(x), by = x_interval * 2)) {
+  rect(xleft = i, xright = i + x_interval, ybottom = par("usr")[3], ytop = par("usr")[4],
+       col = "gray90", border = NA)
+}
+  
+  # add grid
+  #grid(nx = NULL, ny = NULL, col = "grey")
+  
+  points(x, y1, col = "#B3CBB9", pch = 19)
+  # add border of plot back in
+  box()
+
+}
+
+png("richness.png", width = 800, height = 600)
+
+richness_plot <- plot_with_dots(na.omit(wq_data_2$Num6), na.omit(wq_data_2$Richness), "Total Richness")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+
+Percent of Days with Outflow
+```{r}
+plot_with_dots <- function(x, y1, ylab) {
+  # Define arrow colors
+  # Create a new plot
+  plot(x, y1, col = "#B3CBB9", pch = 19, ylim = c((min(c(y1))-(0.1*min(c(y1)))), (max(c(y1))+(0.1*max(c(y1))))), xlim = c(min(x)-2, max(x)+4), xlab = "", ylab = ylab, xaxt = "n", xaxs = "i", yaxs = "i",      cex.lab = 1.4,  # Increase size of axis labels
+     cex.axis = 1.4) # Increase size of tick labels)
+  
+  # Define the interval for shading
+x_interval <- 12
+
+  # Add shaded rectangles for every other interval
+for (i in seq(0, max(x), by = x_interval * 2)) {
+  rect(xleft = i, xright = i + x_interval, ybottom = par("usr")[3], ytop = par("usr")[4],
+       col = "gray90", border = NA)
+}
+  
+  # add grid
+  #grid(nx = NULL, ny = NULL, col = "grey")
+  
+  points(x, y1, col = "#B3CBB9", pch = 19)
+  # add border of plot back in
+  box()
+
+}
+
+png("percentof.png", width = 800, height = 600)
+
+percentof_plot <- plot_with_dots(na.omit(wq_data_2$Num6), na.omit(wq_data_2$Percent.Days.Outflow), "Percentage of Days with Outflow (%)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+
+Peak Outflow
+```{r}
+plot_with_dots <- function(x, y1, ylab) {
+  # Define arrow colors
+  # Create a new plot
+  plot(x, y1, col = "#B3CBB9", pch = 19, ylim = c((min(c(y1))-(0.1*min(c(y1)))), (max(c(y1))+(0.1*max(c(y1))))), xlim = c(min(x)-2, max(x)+4), xlab = "", ylab = ylab, xaxt = "n", xaxs = "i", yaxs = "i",      cex.lab = 1.4,  # Increase size of axis labels
+     cex.axis = 1.4) # Increase size of tick labels)
+  
+  # Define the interval for shading
+x_interval <- 12
+
+  # Add shaded rectangles for every other interval
+for (i in seq(0, max(x), by = x_interval * 2)) {
+  rect(xleft = i, xright = i + x_interval, ybottom = par("usr")[3], ytop = par("usr")[4],
+       col = "gray90", border = NA)
+}
+  
+  # add grid
+  #grid(nx = NULL, ny = NULL, col = "grey")
+  
+  points(x, y1, col = "#B3CBB9", pch = 19)
+  # add border of plot back in
+  box()
+
+}
+
+png("peakofcms.png", width = 800, height = 600)
+
+richness_plot <- plot_with_dots(na.omit(wq_data_2$Num6), na.omit(wq_data_2$Peak.Outflow.cms), "Peak Outflow (cms)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
+
+Normalized Peak Outflow
+```{r}
+plot_with_dots <- function(x, y1, ylab) {
+  # Define arrow colors
+  # Create a new plot
+  plot(x, y1, col = "#B3CBB9", pch = 19, ylim = c((min(c(y1))-(0.1*min(c(y1)))), (max(c(y1))+(0.1*max(c(y1))))), xlim = c(min(x)-2, max(x)+4), xlab = "", ylab = ylab, xaxt = "n", xaxs = "i", yaxs = "i",      cex.lab = 1.4,  # Increase size of axis labels
+     cex.axis = 1.4) # Increase size of tick labels)
+  
+  # Define the interval for shading
+x_interval <- 12
+
+  # Add shaded rectangles for every other interval
+for (i in seq(0, max(x), by = x_interval * 2)) {
+  rect(xleft = i, xright = i + x_interval, ybottom = par("usr")[3], ytop = par("usr")[4],
+       col = "gray90", border = NA)
+}
+  
+  # add grid
+  #grid(nx = NULL, ny = NULL, col = "grey")
+  
+  points(x, y1, col = "#B3CBB9", pch = 19)
+  # add border of plot back in
+  box()
+
+}
+
+png("normpeakof.png", width = 800, height = 600)
+
+richness_plot <- plot_with_dots(na.omit(wq_data_2$Num6), na.omit(wq_data_2$Peak.Outflow.Norm), "Peak Outflow/Watershed Area (cfs/ft2)")
+pond_codes <- c("HP-UW", "L60-UW", "GPP", "DOBA7", "OPP-W", "HPC", "DOBA8", "MDT", "ELV", "2FP", "GCH", "WS-ARB", "UM-ARB", "MC-ARB", "BaxN", "DOBA22", "DOBA5", "DOBA4", "DCSW", "CAP")
+
+# Define custom tick mark locations (every 4th point starting from 3)
+custom_ticks <- seq(5, 236, by = 12)
+
+# Get the corresponding pond names for the custom tick mark locations
+custom_labels <- pond_codes[ceiling(custom_ticks / 12)]
+
+# Add custom tick marks and labels to the x-axis
+axis(side = 1, at = custom_ticks, labels = custom_labels, las = 2, cex.axis = 1.2)
+
+# Add gridlines that match custom ticks
+#abline(v = custom_ticks, col = "grey", lty = "dotted")
+
+# Add gridlines on y axis
+grid(nx = 0, ny = NULL)
+
+box()
+
+dev.off()
+```
