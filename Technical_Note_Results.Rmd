@@ -16,8 +16,9 @@ library(RColorBrewer)
 # garner
 garner <- read.csv("Inflow_Outflow/Garner_Water_Level_all.csv")
 depth_gar <- garner$Depth.ft
+gar_depth_m <- depth_gar /3.28
 smooth_depth_gar <- smooth_elevation(depth_gar)
-datetime_gar <- as.POSIXct(garner$DateTime, format = "%m/%d/%y %H:%M")
+datetime_gar <- as.POSIXct(garner$DateTime, format = "%m/%d/%Y %H:%M")
 
 # doba5
 doba5 <- read.csv("Inflow_Outflow/DobA5_Water_Level_all.csv")
@@ -28,6 +29,7 @@ datetime_da5 <- as.POSIXct(doba5$DateTime, format = "%m/%d/%y %H:%M")
 # midtown
 midtown <- read.csv("Inflow_Outflow/Midtown_Water_Level_all.csv")
 depth_mid <- midtown$Depth.ft
+mid_depth_m <- depth_mid / 3.28
 smooth_depth_mid <- smooth_elevation(depth_mid)
 datetime_mid <- as.POSIXct(midtown$DateTime, format = "%m/%d/%y %H:%M")
 
@@ -1330,7 +1332,7 @@ source("reverse_puls.R")
 #set.seed(0)
 
 # matrix of bias values
-bias_values <- seq(-10, 10, by = 0.2)/(2.54*12)
+bias_values <- seq(-5, 5, by = 0.1)/(2.54*12)
 
 # Use lapply to run the function for each multiplier value
 garner_results_list <- lapply(bias_values, function(x) get_inflow_outflow_res(depth_gar[27256:27656], x, 0.01, 320, 145, 14/12, (2.75/25.4)/12, 0.595, (20*pi/180), 300))
@@ -1352,9 +1354,11 @@ outflow_cols <- grepl("Outflow.cfs", colnames(garner_results_df))
 
 # create data frame with only inflow columns
 gar_inflow_df <- garner_results_df[, inflow_cols]
+gar_inflow_df <- gar_inflow_df / 35.315
 
 # create data frame with only outflow columns
 gar_outflow_df <- garner_results_df[, outflow_cols]
+gar_outflow_df <- gar_outflow_df / 35.315
 
 write.csv(gar_inflow_df, file = "Garner_Inflow_Test.csv")
 write.csv(gar_outflow_df, file = "Garner_Outflow_Test.csv")
@@ -1432,9 +1436,11 @@ outflow_cols <- grepl("Outflow.cfs", colnames(midtown_results_df))
 
 # create data frame with only inflow columns
 mid_inflow_df <- midtown_results_df[, inflow_cols]
+mid_inflow_df <- mid_inflow_df / 35.315
 
 # create data frame with only outflow columns
 mid_outflow_df <- midtown_results_df[, outflow_cols]
+mid_outflow_df <- mid_outflow_df / 35.315
 
 write.csv(mid_inflow_df, file = "midtown_Inflow_Test.csv")
 write.csv(mid_outflow_df, file = "midtown_Outflow_Test.csv")
@@ -1520,30 +1526,44 @@ Calculate 95% CI for pond inflow/outflow
 garner_ci_inflow <- calculate_ci_loop(gar_inflow_df)
 garner_ci_outflow <- calculate_ci_loop(gar_outflow_df)
 # DobA5
-doba5_ci_inflow <- calculate_ci_loop(da5_inflow_df)
-doba5_ci_outflow <- calculate_ci_loop(da5_outflow_df)
+#doba5_ci_inflow <- calculate_ci_loop(da5_inflow_df)
+#doba5_ci_outflow <- calculate_ci_loop(da5_outflow_df)
 # Midtown
 midtown_ci_inflow <- calculate_ci_loop(mid_inflow_df)
 midtown_ci_outflow <- calculate_ci_loop(mid_outflow_df)
 # Baxter
-baxter_ci_inflow <- calculate_ci_loop(bax_inflow_df)
-baxter_ci_outflow <- calculate_ci_loop(bax_outflow_df)
+#baxter_ci_inflow <- calculate_ci_loop(bax_inflow_df)
+#baxter_ci_outflow <- calculate_ci_loop(bax_outflow_df)
 ```
 
 Plot results from 95% confidence interval: Garner
 ```{r}
+
+gar_inflow_plot <- smoothed_results_gar$Inflow.cfs[3:401] / 35.315
+gar_outflow_plot <- smoothed_results_gar$Outflow.cfs[3:401] / 35.315
+
 # Right now using range of values instead of confidence interval
-plot_df <- data.frame(x = datetime_gar[27258:27656], mean_value_inflow = smoothed_results_gar$Inflow.cfs[3:401], lower_bound_inflow = gar_inflow_df$Inflow.cfs.1[3:401], upper_bound_inflow = gar_inflow_df$Inflow.cfs.100[3:401], lower_ci_inflow = garner_ci_inflow$Lower_CI[3:401], upper_ci_inflow = garner_ci_inflow$Upper_CI[3:401], mean_value_outflow = smoothed_results_gar$Outflow.cfs[3:401], lower_bound_outflow = gar_outflow_df$Outflow.cfs.1[3:401], upper_bound_outflow = gar_outflow_df$Outflow.cfs.100[3:401], lower_ci_outflow = garner_ci_outflow$Lower_CI[3:401], upper_ci_outflow = garner_ci_outflow$Upper_CI[3:401]) 
+plot_df <- data.frame(x = datetime_gar[27258:27656], gar_depth_m = gar_depth_m[27258:27656], mean_value_inflow = gar_inflow_plot, lower_bound_inflow = gar_inflow_df$Inflow.cfs.1[3:401], upper_bound_inflow = gar_inflow_df$Inflow.cfs.100[3:401], lower_ci_inflow = garner_ci_inflow$Lower_CI[3:401], upper_ci_inflow = garner_ci_inflow$Upper_CI[3:401], mean_value_outflow = gar_outflow_plot, lower_bound_outflow = gar_outflow_df$Outflow.cfs.1[3:401], upper_bound_outflow = gar_outflow_df$Outflow.cfs.100[3:401], lower_ci_outflow = garner_ci_outflow$Lower_CI[3:401], upper_ci_outflow = garner_ci_outflow$Upper_CI[3:401]) 
   
 # Create the plot
 ggplot(plot_df, aes(x = x)) +
-  geom_line(aes(y = mean_value_inflow), color = "blue", size = 0.5) +  # Line for the mean inflow
-  geom_line(aes(y = mean_value_outflow), color = "red", size = 0.5) +  # Line for the mean outflow
-  geom_ribbon(aes(ymin = lower_ci_inflow, ymax = upper_ci_inflow), fill = "blue", alpha = 0.2) +  # Shaded area inflow
-  geom_ribbon(aes(ymin = lower_ci_outflow, ymax = upper_ci_outflow), fill = "red", alpha = 0.2) +  # Shaded area outflow
+  geom_line(aes(y = mean_value_inflow), color = "Inflow", size = 0.5) +  # Line for the mean inflow
+  geom_line(aes(y = mean_value_outflow), color = "Outflow", size = 0.5) +  # Line for the mean outflow
+  geom_ribbon(aes(ymin = lower_ci_inflow, ymax = upper_ci_inflow), fill = "Inflow 95% CI", alpha = 0.2) +  # Shaded area inflow
+  geom_ribbon(aes(ymin = lower_ci_outflow, ymax = upper_ci_outflow), fill = "Outflow 95% CI", alpha = 0.2) +  # Shaded area outflow
+  ylim(0, 1.75) +
+  
+  # Customize the labels for the legend
+  scale_color_manual(name = "Flow Type", 
+                     values = c("Inflow" = "blue", "Outflow" = "red")) +
+  
+  scale_fill_manual(name = "Confidence Intervals", 
+                    values = c("Inflow 95% CI" = "blue", "Outflow 95% CI" = "red"),
+                    labels = c("Inflow 95% CI", "Outflow 95% CI")) +
+  
   labs(title = "",
        x = "DateTime",
-       y = "Flow (cfs)") +
+       y = "Flow (cms)") +
   theme_minimal() +
   theme(
     panel.border = element_rect(colour = "black", fill = NA, size = 1),  # Border around plot panel
@@ -1558,6 +1578,205 @@ ggplot(plot_df, aes(x = x)) +
   )
 
 ggsave("garner_95ci.png")
+```
+```{r}
+# Create the plot
+ggplot(plot_df, aes(x = x)) +
+  
+  # Line for the mean inflow, mapped to color aesthetic
+  geom_line(aes(y = mean_value_inflow, color = "Inflow"), size = 0.5) +
+  
+  # Line for the mean outflow, mapped to color aesthetic
+  geom_line(aes(y = mean_value_outflow, color = "Outflow"), size = 0.5) +
+  
+  # Shaded area for inflow 95% CI, mapped to fill aesthetic
+  geom_ribbon(aes(ymin = lower_bound_inflow, ymax = upper_bound_inflow, fill = "Inflow Range"), alpha = 0.2) +
+  
+  # Shaded area for outflow 95% CI, mapped to fill aesthetic
+  geom_ribbon(aes(ymin = lower_bound_outflow, ymax = upper_bound_outflow, fill = "Outflow Range"), alpha = 0.2) +
+  
+  # Set y-axis limits
+  ylim(0, 1.75) +
+  
+  # Customize the labels for the legend
+  scale_color_manual(name = NULL,  # Remove Flow Type title
+                     values = c("Inflow" = "blue", "Outflow" = "red")) +
+  
+  scale_fill_manual(name = NULL,  # Remove Confidence Intervals title
+                    values = c("Inflow Range" = "blue", "Outflow Range" = "red")) +
+  
+  # Add axis labels and a minimal theme
+  labs(title = "",
+       x = "DateTime",
+       y = "Flow (cms)") +
+  
+  # Customize the plot appearance
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),  # Border around plot panel
+    panel.grid.major = element_line(colour = "darkgray", linetype = "dashed"),  # Dotted major grid lines
+    panel.grid.minor = element_line(colour = "darkgray", linetype = "dashed"),   # Dotted minor grid lines
+    axis.ticks = element_line(size = 0.5, color = "black"),  # Makes tick marks thicker and darker
+    axis.ticks.length = unit(0.25, "cm"),
+    axis.title.x = element_text(size = 16),  # Larger X-axis title
+    axis.title.y = element_text(size = 16),  # Larger Y-axis title
+    axis.text.x = element_text(size = 14),   # Larger X-axis tick labels
+    axis.text.y = element_text(size = 14),   # Larger Y-axis tick labels
+
+    # Move the legend to the top right inside the plot
+    legend.position = c(0.95, 0.95),  # Coordinates (x, y) for legend inside the plot
+    legend.justification = c(1, 1),   # Anchors the legend at the top right corner
+    legend.box.background = element_rect(color = "black"),  # Optionally another box around the entire legend box
+
+        # Adjust spacing between legend items to reduce gap
+    legend.spacing = unit(0.01, "cm")  # Decrease spacing between Flow Type and Confidence Interval
+  ) +
+  
+  # Flip the order of the legends and remove their titles
+  guides(color = guide_legend(order = 1, title = NULL),  # Flow Type comes second
+         fill = guide_legend(order = 2, title = NULL))   # Confidence Intervals comes first
+
+```
+Fancy Garner Plot
+```{r}
+library(ggplot2)
+
+# Define a scaling factor to align the secondary y-axis
+scaling_factor <- max(plot_df$mean_value_inflow, plot_df$mean_value_outflow) / max(plot_df$gar_depth_m)
+
+# Update the plot
+ggplot(plot_df, aes(x = x)) +
+  
+  # Line for the mean inflow, mapped to color aesthetic
+  geom_line(aes(y = mean_value_inflow, color = "Inflow"), size = 1) +
+  
+  # Line for the mean outflow, mapped to color aesthetic
+  geom_line(aes(y = mean_value_outflow, color = "Outflow"), size = 1) +
+  
+  # Line for gar_depth_m, scaled for secondary axis
+  geom_line(aes(y = (gar_depth_m - 0.4) * (1.75 / 0.8), color = "Stage"), size = 1) +
+  
+  # Shaded area for inflow 95% CI, mapped to fill aesthetic
+  geom_ribbon(aes(ymin = lower_bound_inflow, ymax = upper_bound_inflow, fill = "Inflow Range"), alpha = 0.2) +
+  
+  # Shaded area for outflow 95% CI, mapped to fill aesthetic
+  geom_ribbon(aes(ymin = lower_bound_outflow, ymax = upper_bound_outflow, fill = "Outflow Range"), alpha = 0.2) +
+  
+  # Set primary y-axis limits
+  scale_y_continuous(
+    name = "Flow (cms)", # Primary y-axis label
+    limits = c(0, 1.75),
+    sec.axis = sec_axis(
+      trans = ~ . * (0.8 / 1.75) + 0.4,  # Transformation for secondary y-axis
+      breaks = seq(0.4, 1.2, 0.1),  # Custom breaks for secondary y-axis
+      name = "Stage (m)"         # Secondary y-axis label
+    )
+  ) +
+  
+  # Customize the labels for the legend
+  scale_color_manual(name = NULL,
+                     values = c("Inflow" = "blue", "Outflow" = "red", "Stage" = "black")) +
+  
+  scale_fill_manual(name = NULL,
+                    values = c("Inflow Range" = "blue", "Outflow Range" = "red")) +
+  
+  # Add axis labels and a minimal theme
+  labs(title = "",
+       x = "DateTime") +
+  
+  # Customize the plot appearance
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),
+    panel.grid.major = element_line(colour = "darkgray", linetype = "dashed"),
+    panel.grid.minor = element_line(colour = "darkgray", linetype = "dashed"),
+    axis.ticks = element_line(size = 0.5, color = "black"),
+    axis.ticks.length = unit(0.25, "cm"),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    axis.title.y.right = element_text(color = "black"), # Style for secondary y-axis
+    legend.position = c(0.95, 0.95),
+    legend.justification = c(1, 1),
+    legend.box.background = element_rect(color = "black"),
+    legend.spacing = unit(0.01, "cm")
+  ) +
+  
+  # Flip the order of the legends and remove their titles
+  guides(color = guide_legend(order = 1, title = NULL),
+         fill = guide_legend(order = 2, title = NULL))
+```
+
+Fancy Midtown Plot
+```{r}
+library(ggplot2)
+
+# Define a scaling factor to align the secondary y-axis
+scaling_factor <- max(plot_df$mean_value_inflow, plot_df$mean_value_outflow) / max(plot_df$mid_depth_m)
+
+# Update the plot
+ggplot(plot_df, aes(x = x)) +
+  
+  # Line for the mean inflow, mapped to color aesthetic
+  geom_line(aes(y = mean_value_inflow, color = "Inflow"), size = 1) +
+  
+  # Line for the mean outflow, mapped to color aesthetic
+  geom_line(aes(y = mean_value_outflow, color = "Outflow"), size = 1) +
+  
+  # Line for gar_depth_m, scaled for secondary axis
+  geom_line(aes(y = (mid_depth_m - 0.4) * (1.75 / 0.8), color = "Stage"), size = 1) +
+  
+  # Shaded area for inflow 95% CI, mapped to fill aesthetic
+  geom_ribbon(aes(ymin = lower_bound_inflow, ymax = upper_bound_inflow, fill = "Inflow Range"), alpha = 0.2) +
+  
+  # Shaded area for outflow 95% CI, mapped to fill aesthetic
+  geom_ribbon(aes(ymin = lower_bound_outflow, ymax = upper_bound_outflow, fill = "Outflow Range"), alpha = 0.2) +
+  
+  # Set primary y-axis limits
+  scale_y_continuous(
+    name = "Flow (cms)", # Primary y-axis label
+    limits = c(0, 1.75),
+    sec.axis = sec_axis(
+      trans = ~ . * (0.8 / 1.75) + 0.4,  # Transformation for secondary y-axis
+      breaks = seq(0.4, 1.2, 0.1),  # Custom breaks for secondary y-axis
+      name = "Stage (m)"         # Secondary y-axis label
+    )
+  ) +
+  
+  # Customize the labels for the legend
+  scale_color_manual(name = NULL,
+                     values = c("Inflow" = "blue", "Outflow" = "red", "Stage" = "black")) +
+  
+  scale_fill_manual(name = NULL,
+                    values = c("Inflow Range" = "blue", "Outflow Range" = "red")) +
+  
+  # Add axis labels and a minimal theme
+  labs(title = "",
+       x = "DateTime") +
+  
+  # Customize the plot appearance
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),
+    panel.grid.major = element_line(colour = "darkgray", linetype = "dashed"),
+    panel.grid.minor = element_line(colour = "darkgray", linetype = "dashed"),
+    axis.ticks = element_line(size = 0.5, color = "black"),
+    axis.ticks.length = unit(0.25, "cm"),
+    axis.title.x = element_text(size = 16),
+    axis.title.y = element_text(size = 16),
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14),
+    axis.title.y.right = element_text(color = "black"), # Style for secondary y-axis
+    legend.position = c(0.95, 0.95),
+    legend.justification = c(1, 1),
+    legend.box.background = element_rect(color = "black"),
+    legend.spacing = unit(0.01, "cm")
+  ) +
+  
+  # Flip the order of the legends and remove their titles
+  guides(color = guide_legend(order = 1, title = NULL),
+         fill = guide_legend(order = 2, title = NULL))
 ```
 
 Plot results from 95% confidence interval: DobA5
@@ -1594,17 +1813,22 @@ ggplot(plot_df, aes(x = x)) +
 
 Plot results from 95% confidence interval: Midtown
 ```{r}
-plot_df <- data.frame(x = datetime_mid[1291:1689], mean_value_inflow = smoothed_results_mid$Inflow.cfs[3:401], lower_bound_inflow = mid_inflow_df$Inflow.cfs.1[3:401], upper_bound_inflow = mid_inflow_df$Inflow.cfs.100[3:401], lower_ci_inflow = midtown_ci_inflow$Lower_CI[3:401], upper_ci_inflow = midtown_ci_inflow$Upper_CI[3:401], mean_value_outflow = smoothed_results_mid$Outflow.cfs[3:401], lower_bound_outflow = mid_outflow_df$Outflow.cfs.1[3:401], upper_bound_outflow = mid_outflow_df$Outflow.cfs.100[3:401], lower_ci_outflow = midtown_ci_outflow$Lower_CI[3:401], upper_ci_outflow = midtown_ci_outflow$Upper_CI[3:401]) 
+# Convert flow from cfs to cms
+mid_inflow_plot <- smoothed_results_mid$Inflow.cfs[3:401] / 35.315
+mid_outflow_plot <- smoothed_results_mid$Outflow.cfs[3:401] / 35.315
+
+plot_df <- data.frame(x = datetime_mid[1291:1689], mid_depth_m = mid_depth_m[1291:1689], mean_value_inflow = mid_inflow_plot, lower_bound_inflow = mid_inflow_df$Inflow.cfs.1[3:401], upper_bound_inflow = mid_inflow_df$Inflow.cfs.100[3:401], lower_ci_inflow = midtown_ci_inflow$Lower_CI[3:401], upper_ci_inflow = midtown_ci_inflow$Upper_CI[3:401], mean_value_outflow = mid_outflow_plot, lower_bound_outflow = mid_outflow_df$Outflow.cfs.1[3:401], upper_bound_outflow = mid_outflow_df$Outflow.cfs.100[3:401], lower_ci_outflow = midtown_ci_outflow$Lower_CI[3:401], upper_ci_outflow = midtown_ci_outflow$Upper_CI[3:401]) 
   
 # Create the plot
 ggplot(plot_df, aes(x = x)) +
   geom_line(aes(y = mean_value_inflow), color = "blue", size = 0.5) +  # Line for the mean inflow
   geom_line(aes(y = mean_value_outflow), color = "red", size = 0.5) +  # Line for the mean outflow
-  geom_ribbon(aes(ymin = lower_ci_inflow, ymax = upper_ci_inflow), fill = "blue", alpha = 0.2) +  # Shaded area inflow
-  geom_ribbon(aes(ymin = lower_ci_outflow, ymax = upper_ci_outflow), fill = "red", alpha = 0.2) +  # Shaded area outflow
+  geom_ribbon(aes(ymin = lower_bound_inflow, ymax = upper_bound_inflow), fill = "blue", alpha = 0.2) +  # Shaded area inflow
+  geom_ribbon(aes(ymin = lower_bound_outflow, ymax = upper_bound_outflow), fill = "red", alpha = 0.2) +  # Shaded area outflow
+  ylim(0, 1.75) +
   labs(title = "",
        x = "DateTime",
-       y = "Flow (cfs)") +
+       y = "Flow (cms)") +
   theme_minimal() +
   theme(
     panel.border = element_rect(colour = "black", fill = NA, size = 1),  # Border around plot panel
@@ -1619,6 +1843,70 @@ ggplot(plot_df, aes(x = x)) +
   )
 
 ggsave("midtown_95ci.png")
+```
+
+```{r}
+# Convert flow from cfs to cms
+mid_inflow_plot <- smoothed_results_mid$Inflow.cfs[3:401] / 35.315
+mid_outflow_plot <- smoothed_results_mid$Outflow.cfs[3:401] / 35.315
+
+plot_df <- data.frame(x = datetime_mid[1291:1689], mean_value_inflow = mid_inflow_plot, lower_bound_inflow = mid_inflow_df$Inflow.cfs.1[3:401], upper_bound_inflow = mid_inflow_df$Inflow.cfs.100[3:401], lower_ci_inflow = midtown_ci_inflow$Lower_CI[3:401], upper_ci_inflow = midtown_ci_inflow$Upper_CI[3:401], mean_value_outflow = mid_outflow_plot, lower_bound_outflow = mid_outflow_df$Outflow.cfs.1[3:401], upper_bound_outflow = mid_outflow_df$Outflow.cfs.100[3:401], lower_ci_outflow = midtown_ci_outflow$Lower_CI[3:401], upper_ci_outflow = midtown_ci_outflow$Upper_CI[3:401])
+
+# Create the plot
+ggplot(plot_df, aes(x = x)) +
+  
+  # Line for the mean inflow, mapped to color aesthetic
+  geom_line(aes(y = mean_value_inflow, color = "Inflow"), size = 0.5) +
+  
+  # Line for the mean outflow, mapped to color aesthetic
+  geom_line(aes(y = mean_value_outflow, color = "Outflow"), size = 0.5) +
+  
+  # Shaded area for inflow 95% CI, mapped to fill aesthetic
+  geom_ribbon(aes(ymin = lower_bound_inflow, ymax = upper_bound_inflow, fill = "Inflow 100% CI"), alpha = 0.2) +
+  
+  # Shaded area for outflow 95% CI, mapped to fill aesthetic
+  geom_ribbon(aes(ymin = lower_bound_outflow, ymax = upper_bound_outflow, fill = "Outflow 100% CI"), alpha = 0.2) +
+  
+  # Set y-axis limits
+  ylim(0, 1.75) +
+  
+  # Customize the labels for the legend
+  scale_color_manual(name = NULL,  # Remove Flow Type title
+                     values = c("Inflow" = "blue", "Outflow" = "red")) +
+  
+  scale_fill_manual(name = NULL,  # Remove Confidence Intervals title
+                    values = c("Inflow 100% CI" = "blue", "Outflow 100% CI" = "red")) +
+  
+  # Add axis labels and a minimal theme
+  labs(title = "",
+       x = "DateTime",
+       y = "Flow (cms)") +
+  
+  # Customize the plot appearance
+  theme_minimal() +
+  theme(
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),  # Border around plot panel
+    panel.grid.major = element_line(colour = "darkgray", linetype = "dashed"),  # Dotted major grid lines
+    panel.grid.minor = element_line(colour = "darkgray", linetype = "dashed"),   # Dotted minor grid lines
+    axis.ticks = element_line(size = 0.5, color = "black"),  # Makes tick marks thicker and darker
+    axis.ticks.length = unit(0.25, "cm"),
+    axis.title.x = element_text(size = 16),  # Larger X-axis title
+    axis.title.y = element_text(size = 16),  # Larger Y-axis title
+    axis.text.x = element_text(size = 14),   # Larger X-axis tick labels
+    axis.text.y = element_text(size = 14),   # Larger Y-axis tick labels
+
+    # Move the legend to the top right inside the plot
+    legend.position = c(0.95, 0.95),  # Coordinates (x, y) for legend inside the plot
+    legend.justification = c(1, 1),   # Anchors the legend at the top right corner
+    legend.box.background = element_rect(color = "black"),  # Optionally another box around the entire legend box
+
+        # Adjust spacing between legend items to reduce gap
+    legend.spacing = unit(0.01, "cm")  # Decrease spacing between Flow Type and Confidence Interval
+  ) +
+  
+  # Flip the order of the legends and remove their titles
+  guides(color = guide_legend(order = 1, title = NULL),  # Flow Type comes second
+         fill = guide_legend(order = 2, title = NULL))   # Confidence Intervals comes first
 ```
 
 Plot Attenuation vs Error for Base Results Medium Storm

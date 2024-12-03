@@ -15,89 +15,89 @@ Read water level data
 ```{r}
 # V-notch weirs
 # Manitou
-manitou_data <- read.csv("Manitou/Manitou_Water_Level_all.csv")
+manitou_data <- read.csv("Inflow_Outflow/Manitou_Water_Level_all.csv")
 depth_ft_man <- manitou_data$Depth.ft
 datetime_man <- manitou_data$DateTime
 # Garner
-garner_data <- read.csv("Garner/Garner_Water_Level_all.csv")
+garner_data <- read.csv("Inflow_Outflow/Garner_Water_Level_all.csv")
 depth_ft_gar <- garner_data$Depth.ft
 datetime_gar <- garner_data$DateTime
 # DobA5
-doba5_data <- read.csv("DobA5/DobA5_Water_Level_all.csv")
+doba5_data <- read.csv("Inflow_Outflow/DobA5_Water_Level_all.csv")
 depth_ft_da5 <- doba5_data$Depth.ft
 datetime_da5 <- doba5_data$DateTime
 
 # Rectangular weirs
 # Midtown
-midtown_data <- read.csv("Midtown/Midtown_Water_Level_all.csv")
+midtown_data <- read.csv("Inflow_Outflow/Midtown_Water_Level_all.csv")
 depth_ft_mid <- midtown_data$Depth.ft
 datetime_mid <- midtown_data$DateTime
 # Baxter
-baxter_data <- read.csv("Baxter/Baxter_Water_Level_all.csv")
+baxter_data <- read.csv("Inflow_Outflow/Baxter_Water_Level_all.csv")
 depth_ft_bax <- baxter_data$Depth.ft
 datetime_bax <- baxter_data$DateTime
 # DobA8
-doba8_data <- read.csv("DobA8/DobA8_Water_Level_all.csv")
+doba8_data <- read.csv("Inflow_Outflow/DobA8_Water_Level_all.csv")
 depth_ft_da8 <- doba8_data$Depth.ft
 datetime_da8 <- doba8_data$DateTime
 # Elver
-elver_data <- read.csv("Elver/Elver_Water_Level_all.csv")
+elver_data <- read.csv("Inflow_Outflow/Elver_Water_Level_all.csv")
 depth_ft_elver <- elver_data$Depth.ft
 datetime_elver <- elver_data$DateTime
 # HP Church
-hpchurch_data <- read.csv("HPChurch/HPChurch_Water_Level.csv")
+hpchurch_data <- read.csv("Inflow_Outflow/HPChurch_Water_Level.csv")
 depth_ft_hp <- hpchurch_data$Depth.ft
 datetime_hp <- hpchurch_data$DateTime
 # Door Creek
-doorcreek_data <- read.csv("DoorCreek/DoorCreek_Water_Level_all.csv")
+doorcreek_data <- read.csv("Inflow_Outflow/DoorCreek_Water_Level_all.csv")
 depth_ft_dc <- doorcreek_data$Depth.ft
 datetime_dc <- doorcreek_data$DateTime
 # Commercial Ave
-commave_data <- read.csv("CommAve/CommAve_Water_Level_all.csv")
+commave_data <- read.csv("Inflow_Outflow/CommAve_Water_Level_all.csv")
 depth_ft_ca <- commave_data$Depth.ft
 datetime_ca <- commave_data$DateTime
 # Greentree
-greentree_data <- read.csv("Greentree/Greentree_Water_Level_all.csv")
+greentree_data <- read.csv("Inflow_Outflow/Greentree_Water_Level_all.csv")
 depth_ft_gt <- greentree_data$Depth.ft
 datetime_gt <- greentree_data$DateTime
 
 # Other weirs
 # DobA7
-doba7_data <- read.csv("DobA7/DobA7_Water_Level_all.csv")
+doba7_data <- read.csv("Inflow_Outflow/DobA7_Water_Level_all.csv")
 depth_ft_da7 <- doba7_data$Depth.ft
 datetime_da7 <- doba7_data$DateTime
 
 # Pipes
 # Owen
-owen_data <- read.csv("Owen/Owen_Water_Level_all.csv")
+owen_data <- read.csv("Inflow_Outflow/Owen_Water_Level_all.csv")
 depth_ft_owen <- owen_data$Depth.ft
 datetime_owen <- owen_data$DateTime
 # Marion-Dunn
-mariondunn_data <- read.csv("MarionDunn/MarionDunn_Water_Level_all.csv")
+mariondunn_data <- read.csv("Inflow_Outflow/MarionDunn_Water_Level_all.csv")
 depth_ft_md <- mariondunn_data$Depth.ft
 datetime_md <- mariondunn_data$DateTime
 # Mad City
-madcity_data <- read.csv("MadCity/MadCity_Water_Level_all.csv")
+madcity_data <- read.csv("Inflow_Outflow/MadCity_Water_Level_all.csv")
 depth_ft_mc <- madcity_data$Depth.ft
 datetime_mc <- madcity_data$DateTime
 # DobA22
-doba22_data <- read.csv("DobA22/DobA22_Water_Level_all.csv")
+doba22_data <- read.csv("Inflow_Outflow/DobA22_Water_Level_all.csv")
 depth_ft_da22 <- doba22_data$Depth.ft
 datetime_da22 <- doba22_data$DateTime
 # DobA4
-doba4_data <- read.csv("DobA4/DobA4_Water_Level_all_corrected.csv")
+doba4_data <- read.csv("Inflow_Outflow/DobA4_Water_Level_all_corrected.csv")
 depth_ft_da4 <- doba4_data$Depth.ft
 datetime_da4 <- doba4_data$DateTime
 # Hospital
-hospital_data <- read.csv("Hospital/Hospital_Water_Level_all.csv")
+hospital_data <- read.csv("Inflow_Outflow/Hospital_Water_Level_all.csv")
 depth_ft_hos <- hospital_data$Depth.ft
 datetime_hos <- hospital_data$DateTime
 # Lot 60
-lot60_data <- read.csv("Lot60/Lot60_Water_Level_all.csv")
+lot60_data <- read.csv("Inflow_Outflow/Lot60_Water_Level_all.csv")
 depth_ft_l60 <- lot60_data$Depth.ft
 datetime_l60 <- lot60_data$DateTime
 # Two Fountains
-twofountains_data <- read.csv("TwoFountains/TwoFountains_Water_Level_all.csv")
+twofountains_data <- read.csv("Inflow_Outflow/TwoFountains_Water_Level_all.csv")
 depth_ft_tf <- twofountains_data$Depth.ft
 datetime_tf <- twofountains_data$DateTime
 
@@ -106,7 +106,7 @@ time_min <- manitou_data$Time.min
 time_sec <- manitou_data$Time.sec
 
 # File to get pond names
-pond_names <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Master_Variables.csv")
+#pond_names <- read.csv("/Users/hannahcurtis/Desktop/School/UWMadison/Research/Data Analysis/Master_Variables.csv")
 ```
 
 Moving average to smooth elevation
@@ -669,11 +669,14 @@ elevation_outflow_hos <- na.omit(calc_outflow_culvert(elevation_relationship_ft,
 ```
 
 ```{r}
-plot(elevation_outflow_gar, type = "l")
+plot(elevation_relationship_ft, elevation_outflow_gar, type = "l")
 grid()
 
-plot(elevation_outflow_mid, type = "l")
+plot(elevation_relationship_ft, elevation_outflow_mid, type = "l")
 grid()
+```
+```{r}
+
 ```
 
 Slope of Rating Curve (LF):
@@ -1019,8 +1022,127 @@ mean_inflow_ca <- mean(na.omit(avg_inflow_ca))
 mean_inflow_ca
 ```
 
+Garner Fancy Rating Curve Plot
 ```{r}
-                        
+library(ggplot2)
+
+#elevation_relationship_ft <- elevation_relationship_ft / 3.28
+#elevation_outflow_gar <- elevation_outflow_gar / 35.3146667
+gar_rating_curve <- data.frame(elevation_relationship_ft = elevation_relationship_ft, elevation_outflow_gar = elevation_outflow_gar)
+#mid_rating_curve
+
+# Define data for the lines
+lines_data <- data.frame(
+  x = c(2.5/3.28, 2.8/3.28, 0.4, 0.4),
+  xend = c(2.5/3.28, 2.8/3.28, 2.5/3.28, 2.8/3.28),
+  y = c(0, 0, elevation_outflow_gar[25], elevation_outflow_gar[28]),
+  yend = c(elevation_outflow_gar[25], elevation_outflow_gar[28], elevation_outflow_gar[25], elevation_outflow_gar[28])
+)
+
+# Define data for the first ribbon (between the first two segments)
+ribbon1_data <- data.frame(
+  x = c(2.5/3.28, 2.8/3.28, 2.8/3.28, 2.5/3.28),
+  y = c(0, 0, elevation_outflow_gar[28], elevation_outflow_gar[25])
+)
+
+# Define data for the second ribbon (between the second two segments)
+ribbon2_data <- data.frame(
+  x = c(0.4, 0.4, 2.8/3.28, 2.5/3.28),
+  y = c(elevation_outflow_gar[25], elevation_outflow_gar[28], elevation_outflow_gar[28], elevation_outflow_gar[25])
+)
+
+# Create the plot
+ggplot() +  
+  # Add the lines
+  geom_segment(data = lines_data, aes(x = x, xend = xend, y = y, yend = yend), color = "red") +
+  # Add the first ribbon (shaded area between the first two segments)
+  geom_polygon(data = ribbon1_data, aes(x = x, y = y), fill = "red", alpha = 0.2) +
+  # Add the second ribbon (shaded area between the second two segments)
+  geom_polygon(data = ribbon2_data, aes(x = x, y = y), fill = "red", alpha = 0.2) +
+  geom_line(data = gar_rating_curve, aes(x = elevation_relationship_ft, y = elevation_outflow_gar), 
+            color = "black", size = 1.5) + # Customize color and size of the line 
+  # Set plot limits
+  xlim(0, 5/3.28) +
+  ylim(0, 8/35.3146667) +
+    labs(title = "",
+       x = "Stage (m)",
+       y = "Outflow (cms)") +
+  theme_minimal() +
+   theme(
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),  # Border around plot panel
+    panel.grid.major = element_line(colour = "darkgray", linetype = "dashed"),  # Dotted major grid lines
+    panel.grid.minor = element_line(colour = "darkgray", linetype = "dashed"),   # Dotted minor grid lines
+    axis.ticks = element_line(size = 0.5, color = "black"),  # Makes tick marks thicker and darker
+    axis.ticks.length = unit(0.25, "cm"),
+    axis.title.x = element_text(size = 16),  # Larger X-axis title
+    axis.title.y = element_text(size = 16),  # Larger Y-axis title
+    axis.text.x = element_text(size = 14),   # Larger X-axis tick labels
+    axis.text.y = element_text(size = 14)) +  # Larger Y-axis tick labels
+    scale_x_continuous(limits = c(0.4, 0.89), expand = c(0, 0))  + # Set x-axis limits and remove extra space
+    scale_y_continuous(limits = c(0, 0.44), expand = c(0, 0))  # Set y-axis limits and remove extra space
+```
+Midtown Fancy Rating Curve Plot
+```{r}
+library(ggplot2)
+
+#elevation_relationship_ft <- elevation_relationship_ft * 3.28
+#elevation_outflow_mid <- elevation_outflow_mid / 35.3146667
+mid_rating_curve <- data.frame(elevation_relationship_ft = elevation_relationship_ft, elevation_outflow_mid = elevation_outflow_mid)
+
+# Define data for the lines
+lines_data <- data.frame(
+  x = c(2.5/3.28, 2.8/3.28, 0.4, 0.4),
+  xend = c(2.5/3.28, 2.8/3.28, 2.5/3.28, 2.8/3.28),
+  y = c(0, 0, elevation_outflow_mid[25], elevation_outflow_mid[28]),
+  yend = c(elevation_outflow_mid[25], elevation_outflow_mid[28], elevation_outflow_mid[25], elevation_outflow_mid[28])
+)
+
+# Define data for the first ribbon (between the first two segments)
+ribbon1_data <- data.frame(
+  x = c(2.5/3.28, 2.8/3.28, 2.8/3.28, 2.5/3.28),
+  y = c(0, 0, elevation_outflow_mid[28], elevation_outflow_mid[25])
+)
+
+# Define data for the second ribbon (between the second two segments)
+ribbon2_data <- data.frame(
+  x = c(0.4, 0.4, 2.8/3.28, 2.5/3.28),
+  y = c(elevation_outflow_mid[25], elevation_outflow_mid[28], elevation_outflow_mid[28], elevation_outflow_mid[25])
+)
+
+# Create the plot
+ggplot() +  
+  # Add the lines
+  geom_segment(data = lines_data, aes(x = x, xend = xend, y = y, yend = yend), color = "red") +
+  # Add the first ribbon (shaded area between the first two segments)
+  geom_polygon(data = ribbon1_data, aes(x = x, y = y), fill = "red", alpha = 0.2) +
+  # Add the second ribbon (shaded area between the second two segments)
+  geom_polygon(data = ribbon2_data, aes(x = x, y = y), fill = "red", alpha = 0.2) +
+  geom_line(data = mid_rating_curve, aes(x = elevation_relationship_ft, y = elevation_outflow_mid), 
+            color = "black", size = 1.5) + # Customize color and size of the line 
+  # Set plot limits
+  xlim(0, 5/3.28) +
+  ylim(0, 8/35.3146667) +
+    labs(title = "",
+       x = "Stage (m)",
+       y = "Outflow (cms)") +
+  theme_minimal() +
+   theme(
+    panel.border = element_rect(colour = "black", fill = NA, size = 1),  # Border around plot panel
+    panel.grid.major = element_line(colour = "darkgray", linetype = "dashed"),  # Dotted major grid lines
+    panel.grid.minor = element_line(colour = "darkgray", linetype = "dashed"),   # Dotted minor grid lines
+    axis.ticks = element_line(size = 0.5, color = "black"),  # Makes tick marks thicker and darker
+    axis.ticks.length = unit(0.25, "cm"),
+    axis.title.x = element_text(size = 16),  # Larger X-axis title
+    axis.title.y = element_text(size = 16),  # Larger Y-axis title
+    axis.text.x = element_text(size = 14),   # Larger X-axis tick labels
+    axis.text.y = element_text(size = 14)) +  # Larger Y-axis tick labels
+    scale_x_continuous(limits = c(0.4, 0.89), expand = c(0, 0))  + # Set x-axis limits and remove extra space
+    scale_y_continuous(limits = c(0, 0.44), expand = c(0, 0))  # Set y-axis limits and remove extra space
+```
+
+```{r}
+plot(depth_ft_gar[27258:27656])
+plot(depth_ft_mid[1294:1692])
 ```
 
 Save data to csv:
